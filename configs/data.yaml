@@ -1,0 +1,19 @@
+# Paths resolve relative to this file's parent (the ShelfScan project), not shell cwd.
+source_root: ../Book_Cover_Image_Dataset
+output_root: data
+archive_path: artifacts/pilot_inputs.zip
+expected_images: 128
+seed: 42
+long_edge: 1024
+jpeg_quality: 85
+max_upload_mb: 15
+max_pixels: 40000000
+pilot_per_category: 2
+near_duplicate_distance: 4
+category_map:
+  British_law_books: british_law
+  Fiction: fiction
+  History: history
+  Indian_bare_acts: indian_bare_act
+  Indian_law_books: indian_law
+  Technical: technical
