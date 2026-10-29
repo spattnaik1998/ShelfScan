@@ -1,0 +1,12 @@
+run_id: pilot-v1
+seed: 42
+max_total_attempts: 100
+max_seconds: 7200.0
+minimum_accepted_titles: 8
+minimum_gpu_gib: 14.0
+smoke_steps: 2
+smoke_learning_rate: 0.0001
+max_training_tokens: 4096
+ocr_languages: [en]
+ocr_rotations: [0, 90, 180, 270]
+# Pilot stores a LoRA adapter only on Drive; no upload or public tunnel is automatic.

@@ -131,7 +131,7 @@ class RoleSpec(StrictModel):
 
 class AnnotationConfig(StrictModel):
     engine_version: str = "annotation-v1"
-    backend: Literal["fake"] = "fake"
+    backend: Literal["fake", "colab"] = "fake"
     input_kind: Literal["pilot", "inventory"] = "pilot"
     input_path: str = "data/pilot_manifest.json"
     image_root: str = "artifacts/pilot_inputs"

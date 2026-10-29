@@ -155,6 +155,8 @@ def run(
     )
     if backend != config.backend:
         raise ValueError("Backend argument must match configuration")
+    if config.backend != "fake":
+        raise ValueError("Real GPU annotation must use the phased Colab pilot, not fake adapters")
     root = config_path.parent.parent
     inputs, input_hash = load_inputs(config, root)
     identity_config = config.model_dump(

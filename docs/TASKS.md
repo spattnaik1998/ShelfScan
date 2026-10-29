@@ -1,8 +1,8 @@
 # ShelfScan task-driven implementation specification
 
-Status: T01-T02 verified complete; T03-T13 pending. Updated 2026-10-29.
+Status: T01-T02 verified complete; T03 prepared, awaiting user GPU run; T04-T13 pending. Updated 2026-10-29.
 
-This document defines the execution order and handoffs for [SPEC.md](SPEC.md). Product behavior, annotation policy and research remain defined in [PRD.md](PRD.md), [ANNOTATION_PLAN.md](ANNOTATION_PLAN.md) and [RESEARCH.md](RESEARCH.md). The T01 local foundation and T02 offline annotation engine are implemented; application and notebook tasks remain pending. See [T01 results](T01_RESULTS.md).
+This document defines the execution order and handoffs for [SPEC.md](SPEC.md). Product behavior, annotation policy and research remain defined in [PRD.md](PRD.md), [ANNOTATION_PLAN.md](ANNOTATION_PLAN.md) and [RESEARCH.md](RESEARCH.md). The T01 local foundation and T02 offline annotation engine are implemented; T03 notebook preparation is complete; real GPU execution and application tasks remain pending. See [T01 results](T01_RESULTS.md).
 
 ## Working agreement
 
@@ -76,6 +76,8 @@ Responsibilities: typed role inputs/results and per-field unknown/absent/accepte
 Command: uv run python -m scripts.pilot --config configs/annotation.yaml --backend fake. Done: deterministic fake run produces complete traces, retry limits hold, interrupted jobs resume, and unknown never becomes an absent-field target. MVP excludes partial examples; exact token masks are a later opt-in only after dedicated verification.
 
 ## T03 — Prepare and execute the 12-image Colab pilot
+
+Status: ready for user run. Local preparation/tests complete; GPU execution pending. [Run instructions](T03_COLAB.md) and [preparation report](T03_RESULTS.md).
 
 Codex creates notebooks/00_pilot.ipynb, training/__init__.py, training/runtime.py, training/model_io.py, training/smoke.py, serving/__init__.py, serving/app.py (initial authenticated inference skeleton), configs/models.example.yaml and configs/colab.example.yaml. Real model IDs/revisions are selected from official supported checkpoints at implementation time. GPU environment export is an artifact of the successful run.
 
@@ -172,4 +174,4 @@ Codex hands off a notebook path, instructions, required artifact locations, exac
 
 ## Immediate next task
 
-**T03: prepare the Colab pilot notebook and real runtime adapters.** T01 and T02 are complete. The fake pipeline has been tested on both 12 pilot inputs and the full 128-input inventory, including cached repeats. No real labels or model have been generated. Codex prepares 00_pilot.ipynb and the GPU smoke helpers; the user executes it in Colab and returns the reports. See [T02_RESULTS.md](T02_RESULTS.md).
+**Execute T03 in Colab.** Open notebooks/00_pilot.ipynb, put its matching t03_colab_inputs.zip on Drive, add HF_TOKEN in Colab Secrets and run the cells. Return pilot_reports.zip. The smoke adapter stays on Drive. T04 must wait for review of the real pilot gate; local stub tests do not complete that gate. See [T03_COLAB.md](T03_COLAB.md).

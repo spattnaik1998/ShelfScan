@@ -5,7 +5,7 @@ model. An offline pipeline will generate evidence-checked training labels with O
 two independent vision teachers and bounded adjudication. A gateway-backed web app
 and Colab training notebooks follow in later tasks.
 
-## Current implementation: T01 and T02
+## Current implementation: T01-T02 complete; T03 ready for Colab
 
 Available now: installable Python project, strict shared output schemas, versioned
 extraction prompt, bounded image preprocessing, inventory/hashes, provisional visual
@@ -15,9 +15,11 @@ T02 adds the bounded annotation engine with typed evidence, independent teacher/
 interfaces, selective adjudication, quarantine, durable retries, caching and reports.
 The current CLI uses fake models only and never emits training-eligible labels.
 
-There is no application, model training or executable Colab notebook yet. Next is
-T03 (`00_pilot.ipynb`, prepared locally and executed by the user in Colab).
-See [the task backlog](docs/TASKS.md) and [T02 verification](docs/T02_RESULTS.md).
+T03's [Colab pilot notebook](notebooks/00_pilot.ipynb) is prepared with real HF model
+adapters, OCR, LoRA save/reload and authenticated gateway checks. It has not been run
+on a GPU yet. Follow [the Colab handoff instructions](docs/T03_COLAB.md), using the
+matching `artifacts/t03_colab_inputs.zip` supplied locally. No catalogue web app or
+final trained model exists yet. See [the task backlog](docs/TASKS.md).
 
 Measured T01 results: all 128 images prepared without decode failures; 425.61 MiB of
 originals became 17.92 MiB of copies. Provisional split: 90 train / 18 validation /
@@ -45,8 +47,8 @@ uv run ruff format --check .
 ```
 
 No API key, GPU, model download or paid API is needed. `uv sync` installs the local
-CPU dependencies and development tools recorded in `uv.lock`. GPU requirements will
-be resolved independently during the Colab pilot. YAML paths resolve relative to the
+CPU dependencies and development tools recorded in `uv.lock`. A candidate GPU dependency lock is supplied separately; its actual GPU compatibility
+is checked during the Colab pilot. YAML paths resolve relative to the
 project containing `configs/data.yaml`, not the terminal's working directory. Change
 `source_root` for a different dataset location.
 
