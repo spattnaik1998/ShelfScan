@@ -1,0 +1,31 @@
+engine_version: annotation-v1
+backend: fake
+input_kind: pilot
+input_path: artifacts/pilot_inputs.zip
+image_root: data
+split_path: data/split.provisional.json
+output_root: data/annotation_fake
+seed: 42
+agreement_threshold: 95.0
+min_ocr_confidence: 0.5
+max_total_attempts: 1000
+max_seconds: 300.0
+roles:
+  ocr:
+    model_id: fake-ocr
+    revision: fixture-v1
+    family: fake-ocr
+  teacher_a:
+    model_id: fake-vision-a
+    revision: fixture-v1
+    family: fake-a
+  teacher_b:
+    model_id: fake-vision-b
+    revision: fixture-v1
+    family: fake-b
+    parameters:
+      disagree: true
+  adjudicator:
+    model_id: fake-adjudicator
+    revision: fixture-v1
+    family: fake-judge

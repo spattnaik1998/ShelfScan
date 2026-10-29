@@ -1,8 +1,8 @@
 # ShelfScan task-driven implementation specification
 
-Status: T01 verified complete; T02-T13 pending. Updated 2026-10-29.
+Status: T01-T02 verified complete; T03-T13 pending. Updated 2026-10-29.
 
-This document defines the execution order and handoffs for [SPEC.md](SPEC.md). Product behavior, annotation policy and research remain defined in [PRD.md](PRD.md), [ANNOTATION_PLAN.md](ANNOTATION_PLAN.md) and [RESEARCH.md](RESEARCH.md). The T01 local foundation is implemented; application and notebook tasks remain pending. See [T01 results](T01_RESULTS.md).
+This document defines the execution order and handoffs for [SPEC.md](SPEC.md). Product behavior, annotation policy and research remain defined in [PRD.md](PRD.md), [ANNOTATION_PLAN.md](ANNOTATION_PLAN.md) and [RESEARCH.md](RESEARCH.md). The T01 local foundation and T02 offline annotation engine are implemented; application and notebook tasks remain pending. See [T01 results](T01_RESULTS.md).
 
 ## Working agreement
 
@@ -64,6 +64,8 @@ Outputs: data/inventory.jsonl, data/images_1024/, data/groups.provisional.json, 
 Done when: all 128 sources accounted for with explicit decode failures, originals unchanged, prepared images within limits, no group overlap, pilot manifest reproducible, tests pass and pilot archive contains everything needed to load its inputs. Synthetic fixtures are sufficient for unit tests; real data remains ignored. Establish the Git repository in ShelfScan and connect the selected remote before pushing; do not initialize a parent dataset directory as the source repository.
 
 ## T02 — Implement automated annotator components
+
+Status: verified complete, 2026-10-29. [Results](T02_RESULTS.md) and [running instructions](ANNOTATION_ENGINE.md). Real adapters and GPU validation remain T03 work.
 
 Owner: Codex; CPU execution using scripted model responses.
 
@@ -170,4 +172,4 @@ Codex hands off a notebook path, instructions, required artifact locations, exac
 
 ## Immediate next task
 
-**T02: implement evidence contracts and the bounded annotation engine.** T01 is complete: prepared images, provisional splits and pilot_inputs.zip are available. T02 runs locally using fake clients and enables T03's first user-run Colab notebook. No Colab execution is needed yet. GitHub destination is configured as spattnaik1998/ShelfScan.
+**T03: prepare the Colab pilot notebook and real runtime adapters.** T01 and T02 are complete. The fake pipeline has been tested on both 12 pilot inputs and the full 128-input inventory, including cached repeats. No real labels or model have been generated. Codex prepares 00_pilot.ipynb and the GPU smoke helpers; the user executes it in Colab and returns the reports. See [T02_RESULTS.md](T02_RESULTS.md).

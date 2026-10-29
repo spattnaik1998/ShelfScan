@@ -6,6 +6,8 @@ import pytest
 import yaml
 from PIL import Image
 
+from annotation.contracts import AnnotationConfig, RoleSpec, VisualInput
+from scripts.common import sha256
 from shelfscan.schemas import CATEGORY_MAP
 
 
@@ -44,3 +46,25 @@ def dataset_config(tmp_path: Path) -> Path:
     path = config_dir / "data.yaml"
     path.write_text(yaml.safe_dump(config), encoding="utf-8")
     return path
+
+
+@pytest.fixture
+def visual() -> VisualInput:
+    raw = fixture_jpeg(999)
+    return VisualInput(
+        image_id="opaque-001",
+        image_sha256=sha256(raw),
+        image_bytes=raw,
+        width=64,
+        height=96,
+    )
+
+
+@pytest.fixture
+def annotation_config() -> AnnotationConfig:
+    return AnnotationConfig(
+        roles={
+            role: RoleSpec(model_id=f"fake-{role}", revision="v1", family=role)
+            for role in ("ocr", "teacher_a", "teacher_b", "adjudicator")
+        }
+    )

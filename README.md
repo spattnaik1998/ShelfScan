@@ -5,15 +5,19 @@ model. An offline pipeline will generate evidence-checked training labels with O
 two independent vision teachers and bounded adjudication. A gateway-backed web app
 and Colab training notebooks follow in later tasks.
 
-## Current implementation: T01
+## Current implementation: T01 and T02
 
 Available now: installable Python project, strict shared output schemas, versioned
 extraction prompt, bounded image preprocessing, inventory/hashes, provisional visual
 grouping and group-aware splits, and a self-contained 12-image pilot archive.
 
+T02 adds the bounded annotation engine with typed evidence, independent teacher/OCR
+interfaces, selective adjudication, quarantine, durable retries, caching and reports.
+The current CLI uses fake models only and never emits training-eligible labels.
+
 There is no application, model training or executable Colab notebook yet. Next is
-T02 (annotation components), followed by T03 (`00_pilot.ipynb`, prepared locally and
-executed by the user in Colab). See [the task backlog](docs/TASKS.md).
+T03 (`00_pilot.ipynb`, prepared locally and executed by the user in Colab).
+See [the task backlog](docs/TASKS.md) and [T02 verification](docs/T02_RESULTS.md).
 
 Measured T01 results: all 128 images prepared without decode failures; 425.61 MiB of
 originals became 17.92 MiB of copies. Provisional split: 90 train / 18 validation /
@@ -45,6 +49,19 @@ CPU dependencies and development tools recorded in `uv.lock`. GPU requirements w
 be resolved independently during the Colab pilot. YAML paths resolve relative to the
 project containing `configs/data.yaml`, not the terminal's working directory. Change
 `source_root` for a different dataset location.
+
+## Run the annotation engine demonstration
+
+After preparing T01 inputs:
+
+```powershell
+uv run python -m scripts.pilot --config configs/annotation.yaml --backend fake
+```
+
+Repeat to verify zero new worker calls. This is a synthetic control-flow check, not
+real book annotation. The fake backend keeps `labels.jsonl` empty and marks every
+record ineligible for training. See [annotation engine operations](docs/ANNOTATION_ENGINE.md)
+for inventory mode, persistent budgets, outputs and resume behavior.
 
 ## Generated artifacts
 

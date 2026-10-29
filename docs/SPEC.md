@@ -30,7 +30,7 @@ ShelfScan/
   tests/, pyproject.toml, uv.lock, .env.example, README.md
 ```
 
-This is the target layout. T01 foundation files are implemented; other components remain planned. See [T01_RESULTS.md](T01_RESULTS.md) and [TASKS.md](TASKS.md) for execution status.
+This is the target layout. T01 foundation files and the T02 offline annotation engine are implemented; GPU adapters, notebooks and application components remain planned. See [T01_RESULTS.md](T01_RESULTS.md) and [TASKS.md](TASKS.md) for execution status.
 
 ## Data and extraction contracts
 
