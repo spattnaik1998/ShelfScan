@@ -12,7 +12,7 @@ M0 must exercise OCR, both teacher models, adjudication, base student inference,
 
 ## 2. Data notebook
 
-Mount Drive; verify inventory/source hashes; run the training-only 12-image pilot. Freeze group splits before producing training derivatives. Cache role results on Drive, keyed by image/config/model/prompt hashes. Run independent annotators, OCR, verifier and selective adjudicator. Export accepted labels with masks, quarantine and coverage report. No required manual transcription step.
+Create the local runtime workspace and upload inputs; verify inventory/source hashes; run the training-only 12-image pilot. Freeze group splits before producing training derivatives. Cache role results in runtime storage and export them with downloaded results, keyed by image/config/model/prompt hashes. Run independent annotators, OCR, verifier and selective adjudicator. Export accepted labels with masks, quarantine and coverage report. No required manual transcription step.
 
 Before training, require >=60 distinct accepted real training book groups. Unknown optional fields need correct loss masking; otherwise exclude whole examples. Never fill unknowns with null. Package prepared images, frozen split, decisions/labels, prompt, config and manifest as a versioned training artifact. Keep test targets inaccessible to training code. A separate evaluation job owns test artifacts and releases aggregate final scores after model configuration is frozen.
 
@@ -28,7 +28,7 @@ Train on accepted train groups only. First adapt language/attention modules; vis
 
 Use training-only rotations and mild photographic perturbations, preserving readable text and attached labels. They do not create independent books. Optional synthetic covers carry provenance and cannot replace the minimum real-group gate. Optional poisoned training uses train-only payloads with unchanged metadata and sticker text as data.
 
-Choose checkpoint using validation title agreement, schema validity and missing-field behavior, with a predefined tie-break (earlier checkpoint). Maximum two learning-rate configurations after the smoke run; record all trials. Save checkpoints to Drive. No inspection of final test failures while making model choices.
+Choose checkpoint using validation title agreement, schema validity and missing-field behavior, with a predefined tie-break (earlier checkpoint). Maximum two learning-rate configurations after the smoke run; record all trials. Save checkpoints in runtime storage and provide a download cell. No inspection of final test failures while making model choices.
 
 ## 5. Evaluation and ablations
 
@@ -48,4 +48,4 @@ Primary serving path: a small authenticated OpenAI-compatible service around the
 - [ ] Reproducible baseline/validation/final reports with pseudo-reference caveat and all denominators.
 - [ ] Saved adapter reloads; HF artifact includes processor, manifest, model/data attribution.
 - [ ] One image works through gateway as shelfscan-local; base model available for comparison.
-- [ ] Drive checkpoints, runtime setup steps and clearly labeled cached/recorded demo fallback.
+- [ ] Downloaded checkpoints, runtime setup steps and clearly labeled cached/recorded demo fallback.

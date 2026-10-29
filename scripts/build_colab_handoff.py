@@ -1,5 +1,6 @@
 """Build a checksummed T03 source/input bundle and an output-free Colab notebook."""
 
+import base64
 import json
 import textwrap
 from pathlib import Path
@@ -17,12 +18,16 @@ def markdown(text: str) -> dict:
 
 
 def code(text: str) -> dict:
+    source = textwrap.dedent(text).strip()
+    embedded_setup = "SOURCE_B64 =" in source
+    if embedded_setup:
+        source = "#@title Load included supporting code\n" + source
     return {
         "cell_type": "code",
-        "metadata": {},
+        "metadata": {"cellView": "form"} if embedded_setup else {},
         "execution_count": None,
         "outputs": [],
-        "source": textwrap.dedent(text).strip().splitlines(keepends=True),
+        "source": source.splitlines(keepends=True),
     }
 
 
@@ -38,7 +43,6 @@ def build(root: Path) -> dict:
     for name in (
         "pyproject.toml",
         "uv.lock",
-        "artifacts/pilot_inputs.zip",
         "data/split.provisional.json",
     ):
         files[name] = (root / name).read_bytes()
@@ -47,9 +51,14 @@ def build(root: Path) -> dict:
         "files": {name: sha256(data) for name, data in sorted(files.items())},
     }
     files["handoff_manifest.json"] = json_bytes(manifest)
-    bundle = root / "artifacts/t03_colab_inputs.zip"
+    bundle = root / "artifacts/t03_notebook_source.zip"
     write_archive(bundle, files)
     digest = sha256(bundle.read_bytes())
+    source_literal = "\n".join(
+        "        " + repr(chunk)
+        for chunk in textwrap.wrap(base64.b64encode(bundle.read_bytes()).decode(), 76)
+    )
+    pilot_digest = sha256((root / "artifacts/pilot_inputs.zip").read_bytes())
     cells = [
         markdown("""
         # ShelfScan T03 — real GPU pilot
@@ -59,39 +68,44 @@ def build(root: Path) -> dict:
         better), and allow several GB of model/package downloads. No hosted inference
         subscription is needed: HF authenticates weight downloads, Colab runs inference.
 
-        1. Save `t03_colab_inputs.zip` to `MyDrive/shelfscan/t03_colab_inputs.zip`.
+        **No Drive or OneDrive mount. Supporting Python code is included in this notebook.**
+        1. Run setup, then upload `pilot_inputs.zip` when the notebook prompts you.
         2. Add a Colab Secret named `HF_TOKEN`, grant notebook access. A read token is
            enough; accept any required model access terms on HF first.
         3. Run cells in order. If installation requests a session restart, restart and
            run again from the setup cells. Reuse the same RUN_ID to resume unchanged work.
-        4. Keep the smoke adapter on Drive and return **pilot_reports.zip** to Codex.
+        4. Download **pilot_reports.zip** and **pilot_results.zip** using the final cells.
+           The results ZIP includes the saved model adapter and annotation progress.
+           Results are saved under `/content/shelfscan_results/` in the current runtime.
 
         Teacher A/adjudicator: Qwen2.5-VL-7B (4-bit). Teacher B: SmolVLM2-2.2B.
         Student: Qwen2.5-VL-3B (4-bit). Revisions resolve once and are saved. A failed
         gate is an honest result: do not tune on test data or describe it as passed.
     """),
         code("""
-        from google.colab import drive
-        drive.mount('/content/drive')
         from pathlib import Path
         RUN_ID = 'pilot-v1'  # Change only for a deliberate new experiment.
-        BUNDLE = Path('/content/drive/MyDrive/shelfscan/t03_colab_inputs.zip')
         PROJECT = Path('/content/shelfscan_t03')
-        OUTPUT = Path('/content/drive/MyDrive/shelfscan/runs') / RUN_ID / 'pilot'
+        OUTPUT = Path('/content/shelfscan_results') / RUN_ID
         OUTPUT.mkdir(parents=True, exist_ok=True)
     """),
         markdown("""
-        ## Verify and unpack the exact handoff
-        This verifies the bundle before importing its code. The dataset and all role
-        outputs stay on your runtime/Drive; tokens are never included in artifacts.
+        ## Load the included supporting code
+        Run this setup cell as-is. It unpacks the embedded, checksummed Python helpers
+        into the runtime. No code archive upload, repository clone or mounted storage
+        is required. No image data or credentials are embedded in the notebook.
     """),
         code(f"""
-        import hashlib, json, zipfile
+        import base64, hashlib, io, json, zipfile
+        SOURCE_B64 = (
+{source_literal}
+        )
         EXPECTED_SHA256 = {digest!r}
-        if hashlib.sha256(BUNDLE.read_bytes()).hexdigest() != EXPECTED_SHA256:
-            raise ValueError('Wrong or modified T03 bundle; use its matching notebook')
+        source_bytes = base64.b64decode(SOURCE_B64)
+        if hashlib.sha256(source_bytes).hexdigest() != EXPECTED_SHA256:
+            raise ValueError('Embedded notebook source checksum mismatch')
         PROJECT.mkdir(parents=True, exist_ok=True)
-        with zipfile.ZipFile(BUNDLE) as archive:
+        with zipfile.ZipFile(io.BytesIO(source_bytes)) as archive:
             manifest = json.loads(archive.read('handoff_manifest.json'))
             if set(archive.namelist()) != set(manifest['files']) | {{'handoff_manifest.json'}}:
                 raise ValueError('Unexpected bundle members')
@@ -105,7 +119,31 @@ def build(root: Path) -> dict:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(data)
         (PROJECT / 'handoff_manifest.json').write_text(json.dumps(manifest))
-        print('Verified source and 12-image pilot inputs.')
+        print('Supporting code is ready in', PROJECT)
+    """),
+        markdown("""
+        ## Upload only the pilot images
+        Select `pilot_inputs.zip` from the local `ShelfScan/artifacts/` folder. The
+        notebook verifies it and reuses it on reruns in this runtime. Original full-size
+        dataset images are unnecessary. This upload is image data only, not project code.
+    """),
+        code(f"""
+        from google.colab import files
+        PILOT = PROJECT / 'artifacts/pilot_inputs.zip'
+        EXPECTED_PILOT_SHA256 = {pilot_digest!r}
+        pilot_ready = PILOT.exists() and (
+            hashlib.sha256(PILOT.read_bytes()).hexdigest() == EXPECTED_PILOT_SHA256)
+        if not pilot_ready:
+            uploaded = files.upload()
+            if len(uploaded) != 1:
+                raise ValueError('Select exactly one file: pilot_inputs.zip')
+            image_archive = next(iter(uploaded.values()))
+            if hashlib.sha256(image_archive).hexdigest() != EXPECTED_PILOT_SHA256:
+                raise ValueError('Incorrect pilot_inputs.zip; use the supplied 12-image package')
+            PILOT.parent.mkdir(parents=True, exist_ok=True)
+            PILOT.write_bytes(image_archive)
+            del uploaded, image_archive
+        print('Pilot inputs ready.')
     """),
         markdown("""
         ## Install pinned GPU dependencies
@@ -181,7 +219,7 @@ def build(root: Path) -> dict:
         ## Student baseline and tiny LoRA save/reload check
         Baseline predictions cover the training-only pilot. The smoke trains for two
         steps on complete accepted records, masks the entire prompt and image prefix,
-        saves the adapter/processor on Drive and reloads into a fresh base instance.
+        saves the adapter/processor locally and reloads into a fresh base instance.
         It demonstrates feasibility, not improved accuracy or a final usable model.
     """),
         code("pilot.step('baseline', pilot.baseline)"),
@@ -197,8 +235,8 @@ def build(root: Path) -> dict:
         ## Export the handoff report — run even after a failed stage
         Passing requires all stages, cached replay, clean adapter reload, the authenticated
         gateway check and at least 8/12 accepted titles. Excluded optional fields can reduce
-        complete records. The report distinguishes those counts. Leave the adapter in
-        `smoke_adapter/` on Drive; return only this small report bundle for the next task.
+        complete records. The report distinguishes those counts. Download this small
+        report bundle to return to Codex; the following cell saves your adapter separately.
     """),
         code("""
         if 'pilot' in globals():
@@ -225,11 +263,22 @@ def build(root: Path) -> dict:
         files.download(str(reports))
     """),
         markdown("""
-        If setup failed before `pilot` was constructed, collect available reports with:
-        `export_reports(OUTPUT)` (after importing it from `training.runtime`). Do not
-        paste HF_TOKEN or export environment variables. Reference APIs and limitations:
-        see the repository's `docs/T03_COLAB.md`. Full-data annotation is T04, after
-        this GPU pilot is reviewed.
+        ## Download all results and the saved model adapter
+        This saves results, annotation progress, the LoRA adapter, tokenizer/processor
+        and base-model revision. It excludes private logs and the large base weights.
+        Download both ZIPs before ending the
+        runtime: `/content/` is temporary storage. Full-data training follows T04 review.
+    """),
+        code("""
+        import zipfile
+        results_zip = OUTPUT.parent / (OUTPUT.name + '_results.zip')
+        with zipfile.ZipFile(results_zip, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+            for path in sorted(OUTPUT.rglob('*')):
+                if path.is_file() and path.suffix not in ('.log', '.tmp'):
+                    if not path.name.startswith('.'):
+                        archive.write(path, path.relative_to(OUTPUT).as_posix())
+        print('Saved results and available model adapter:', results_zip)
+        files.download(str(results_zip))
     """),
     ]
     notebook = {
@@ -247,9 +296,10 @@ def build(root: Path) -> dict:
     directory.mkdir(exist_ok=True)
     (directory / "00_pilot.ipynb").write_bytes(json_bytes(notebook))
     result = {
-        "bundle": bundle.name,
-        "sha256": digest,
-        "bytes": bundle.stat().st_size,
+        "embedded_source_sha256": digest,
+        "embedded_source_bytes": bundle.stat().st_size,
+        "input_file": "artifacts/pilot_inputs.zip",
+        "input_sha256": pilot_digest,
         "notebook": "notebooks/00_pilot.ipynb",
         "cells": len(cells),
     }

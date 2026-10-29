@@ -195,3 +195,50 @@ def test_notebook_cells_are_valid_python_and_have_no_outputs():
         for node in ast.walk(ast.parse(source))
     )
     assert "pilot.finish()" in text and "pilot.gateway" in text
+    assert "drive.mount" not in text and "/content/drive" not in text
+    assert "files.upload()" in text and "results_zip" in text
+
+
+def test_embedded_notebook_code_unpacks_without_external_archive(tmp_path):
+    notebook = json.loads(Path("notebooks/00_pilot.ipynb").read_bytes())
+    source = next(
+        "".join(cell["source"])
+        for cell in notebook["cells"]
+        if cell["cell_type"] == "code" and "SOURCE_B64" in "".join(cell["source"])
+    )
+    project = tmp_path / "project"
+    scope = {"PROJECT": project}
+    exec(compile(source, "<notebook-bootstrap>", "exec"), scope)
+    manifest = json.loads((project / "handoff_manifest.json").read_bytes())
+    assert (project / "training/pilot.py").is_file()
+    assert (project / "requirements/colab.lock.txt").is_file()
+    assert "artifacts/pilot_inputs.zip" not in manifest["files"]
+    assert not any(name.endswith((".jpg", ".jpeg", ".png")) for name in manifest["files"])
+
+
+def test_notebook_results_download_includes_adapter_and_excludes_private_logs(tmp_path):
+    notebook = json.loads(Path("notebooks/00_pilot.ipynb").read_bytes())
+    source = next(
+        "".join(cell["source"])
+        for cell in notebook["cells"]
+        if cell["cell_type"] == "code" and "results_zip = OUTPUT.parent" in "".join(cell["source"])
+    )
+    output = tmp_path / "pilot-v1"
+    (output / "smoke_adapter").mkdir(parents=True)
+    (output / "smoke_adapter/adapter.safetensors").write_bytes(b"test adapter")
+    (output / "pilot_decisions.json").write_text("[]")
+    (output / "gateway.private.log").write_text("private details")
+    (output / ".writer.lock").write_text("lock")
+    downloads = []
+    exec(
+        compile(source, "<notebook-results>", "exec"),
+        {
+            "OUTPUT": output,
+            "files": SimpleNamespace(download=downloads.append),
+        },
+    )
+    with ZipFile(downloads[0]) as archive:
+        assert set(archive.namelist()) == {
+            "smoke_adapter/adapter.safetensors",
+            "pilot_decisions.json",
+        }

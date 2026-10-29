@@ -18,7 +18,8 @@ The current CLI uses fake models only and never emits training-eligible labels.
 T03's [Colab pilot notebook](notebooks/00_pilot.ipynb) is prepared with real HF model
 adapters, OCR, LoRA save/reload and authenticated gateway checks. It has not been run
 on a GPU yet. Follow [the Colab handoff instructions](docs/T03_COLAB.md), using the
-matching `artifacts/t03_colab_inputs.zip` supplied locally. No catalogue web app or
+notebook directly. No storage mount is needed; upload only `artifacts/pilot_inputs.zip`
+when prompted, then download results and the saved adapter from the final cells. No catalogue web app or
 final trained model exists yet. See [the task backlog](docs/TASKS.md).
 
 Measured T01 results: all 128 images prepared without decode failures; 425.61 MiB of

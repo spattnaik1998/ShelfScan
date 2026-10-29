@@ -6,11 +6,11 @@ This document defines the execution order and handoffs for [SPEC.md](SPEC.md). P
 
 ## Working agreement
 
-Codex creates program files and notebooks locally, runs appropriate CPU/offline checks, builds the application, and commits/pushes source to the selected GitHub repository once it is configured. The user runs GPU notebooks in Colab, retains checkpoints/models on Drive, uploads the approved model artifacts to Hugging Face through notebook cells, and returns the small run reports. Codex then consumes those reports and artifact revisions to implement the next dependent task.
+Codex creates program files and notebooks locally, runs appropriate CPU/offline checks, builds the application, and commits/pushes source to the selected GitHub repository once it is configured. The user runs GPU notebooks in Colab, downloads checkpoints/models from runtime storage, uploads the approved model artifacts to Hugging Face through notebook cells, and returns the small run reports. Codex then consumes those reports and artifact revisions to implement the next dependent task.
 
 A notebook being prepared is not the same as its GPU execution passing. Never mark a GPU task done solely because the notebook parses. No locally available GPU is assumed. Each task follows pending -> implementing -> ready for user run (when applicable) -> verified -> done, or blocked with a concrete reason. Live app integration waits for a working endpoint; local app work with fake model clients can proceed meanwhile.
 
-GitHub status: ShelfScan has a local Git repository on main; origin is https://github.com/spattnaik1998/ShelfScan.git. Repository creation/connection is a separate prerequisite to the first push; local implementation can proceed. Never commit image archives, raw annotation data, credentials, SQLite files, notebook outputs with private data, adapters or model weights. Commit source, sanitized example fixtures, configs and compact reports. Dataset/model artifacts live on Drive/HF with hashes and revisions.
+GitHub status: ShelfScan has a local Git repository on main; origin is https://github.com/spattnaik1998/ShelfScan.git. Repository creation/connection is a separate prerequisite to the first push; local implementation can proceed. Never commit image archives, raw annotation data, credentials, SQLite files, notebook outputs with private data, adapters or model weights. Commit source, sanitized example fixtures, configs and compact reports. Dataset/model artifacts are downloaded locally or stored on HF with hashes and revisions.
 
 ## Task index and dependencies
 
@@ -83,14 +83,14 @@ Codex creates notebooks/00_pilot.ipynb, training/__init__.py, training/runtime.p
 
 Notebook cells, in order:
 
-1. Runtime/GPU capability check, exact code revision or source-archive hash, dependency install, Drive mount and HF Secret access without printing it.
+1. Runtime/GPU capability check, exact code revision or source-archive hash, dependency install, local runtime workspace and HF Secret access without printing it.
 2. Import helpers, verify pilot archive hashes and print sanitized model/license/runtime configuration.
 3. OCR and teacher A pass; persist and unload model. Teacher B pass independently; persist and unload.
 4. Verifier/adjudicator, coverage report and bounded-cache resume check.
 5. Student baseline on pilot images, short LoRA smoke step, save adapter/processor, reload in clean model state and infer.
 6. Authenticated serving/gateway one-image smoke request; latency/memory logging; shutdown and export reports.
 
-Codex checks notebook structure, helper tests and CPU import paths. User uploads/exposes pilot_inputs.zip and runs cells in Colab. Outputs saved under MyDrive/shelfscan/runs/<run_id>/pilot/: pilot_report.json/.md, runtime_manifest.json, models.resolved.yaml, dependency snapshot and smoke_reload_report.json; small smoke adapter stays on Drive. User returns report files and the model revisions; no token or weights need to be pasted into chat.
+Codex checks notebook structure, helper tests and CPU import paths. User uploads/exposes pilot_inputs.zip and runs cells in Colab. Outputs saved under /content/shelfscan_results/<run_id>/: pilot_report.json/.md, runtime_manifest.json, models.resolved.yaml, dependency snapshot and smoke_reload_report.json; the full results ZIP includes the saved smoke adapter. User returns report files and the model revisions; no token or weights need to be pasted into chat.
 
 Gate: both independent teachers, OCR, adjudication and student reload work; >=8/12 accepted titles; one authenticated serving request succeeds. Failures lead to a corrected notebook/config, not full annotation or automatic paid calls. User must execute any revised GPU cells before the task passes.
 
@@ -100,9 +100,9 @@ Codex creates notebooks/01_annotation.ipynb, scripts/package_data.py, annotation
 
 Notebook: verify all 128 input hashes -> OCR/title-based refinement of duplicate book groups -> finalize split with seed 42 and pilot groups kept in training -> freeze split -> run/reuse independent annotations -> adjudicate -> curate -> coverage/gate check -> package. Grouping uses only identity evidence, never student scores. Reused cache entries retain provenance but their split membership comes from the final manifest.
 
-User executes and saves data_version directory on Drive: inventory.jsonl, split.json, annotations/decisions.jsonl and raw role records, labels.train.jsonl, labels.validation.jsonl, references.test.jsonl, quarantine.jsonl, annotation_report.md, run_manifest.json, shelfscan_trainval.zip and shelfscan_eval.zip. Training archive contains only train/validation images and targets plus prompt/config; evaluation archive holds test images/references. Freeze an independent-family reference if feasible and disclose when not available. Save checksums for both archives. Use opaque paths in training input.
+User executes and saves data_version directory in runtime storage and downloads it: inventory.jsonl, split.json, annotations/decisions.jsonl and raw role records, labels.train.jsonl, labels.validation.jsonl, references.test.jsonl, quarantine.jsonl, annotation_report.md, run_manifest.json, shelfscan_trainval.zip and shelfscan_eval.zip. Training archive contains only train/validation images and targets plus prompt/config; evaluation archive holds test images/references. Freeze an independent-family reference if feasible and disclose when not available. Save checksums for both archives. Use opaque paths in training input.
 
-Gate: every source has a disposition; all groups/derivatives isolated; >=60 accepted distinct real training groups; no unknown-as-null supervision; accepted/reference coverage published by split/category. User returns compact coverage report/manifests and Drive artifact locations. Keep test outcomes out of checkpoint selection.
+Gate: every source has a disposition; all groups/derivatives isolated; >=60 accepted distinct real training groups; no unknown-as-null supervision; accepted/reference coverage published by split/category. User returns compact coverage report/manifests and downloaded artifact files. Keep test outcomes out of checkpoint selection.
 
 ## T05 — Implement evaluation and a known-answer benchmark
 
@@ -118,7 +118,7 @@ Codex creates notebooks/02_finetune.ipynb; training/dataset.py, collator.py, tra
 
 Notebook: verify trainval archive/split hashes -> load pinned student/processor -> save base validation predictions and metrics -> inspect assistant-only supervision using automated assertions -> short training sanity run -> main LoRA training -> validation selection -> save/reload selected checkpoint. Maximum two learning-rate configurations; no test archive loaded. Exclude partial labels in MVP; do not silently synthesize absent fields. Training augmentations restricted to train groups. Use supported precision and measured memory settings from T03.
 
-User executes and saves selected adapter, processor/tokenizer/template, base model revision, training/config manifest, trial history, validation report and reload result on Drive. Codex receives the compact report and artifact location to prepare final evaluation/serving. Gate: valid supervision, no test access, reproducible checkpoint selection, successful reload. Run single-teacher ablation on the same group intersection if included; otherwise report it as omitted, not an established ensemble benefit.
+User executes and saves selected adapter, processor/tokenizer/template, base model revision, training/config manifest, trial history, validation report and reload result as downloadable artifacts. Codex receives the compact report and artifact location to prepare final evaluation/serving. Gate: valid supervision, no test access, reproducible checkpoint selection, successful reload. Run single-teacher ablation on the same group intersection if included; otherwise report it as omitted, not an established ensemble benefit.
 
 ## T07 — Final evaluation and publish saved model
 
@@ -126,13 +126,13 @@ Codex creates notebooks/03_evaluate_publish.ipynb, scripts/publish_model.py, tem
 
 Notebook loads evaluation archive in a separate run, checks frozen code/model/data hashes and computes base/tuned/OCR comparisons, separate synthetic metrics, ensemble versus independent-reference comparisons and coverage. It exposes final test scores only after all choices are frozen. Security section evaluates frozen guard against held-out attacks. Record all test runs and why any rerun occurred; changes after seeing test results invalidate an untouched-test claim.
 
-Separate clearly labeled final cells save and optionally upload the selected adapter and processor to the user's chosen HF repository, with model card, license/attribution and manifest. User executes publishing cells and returns HF repository ID plus immutable revision and eval_summary.md/json. Never infer a repository name or visibility. Merged weights optional. Gate: artifact reloads by revision, final claims distinguish measured outcomes from targets and pseudo-reference agreement from truth. If publication is deferred, a versioned Drive artifact still enables T08; record publication as pending.
+Separate clearly labeled final cells save and optionally upload the selected adapter and processor to the user's chosen HF repository, with model card, license/attribution and manifest. User executes publishing cells and returns HF repository ID plus immutable revision and eval_summary.md/json. Never infer a repository name or visibility. Merged weights optional. Gate: artifact reloads by revision, final claims distinguish measured outcomes from targets and pseudo-reference agreement from truth. If publication is deferred, a versioned downloaded artifact still enables T08; record publication as pending.
 
 ## T08 — Connect authenticated GPU serving to the local gateway
 
 Codex creates notebooks/04_serve.ipynb; finalizes serving/app.py; adds serving/auth.py, loader.py; gateway/litellm_config.yaml; configs/serve.example.yaml; tests/test_serving_contract.py, test_gateway_config.py. Validate the LiteLLM version's actual APIs during implementation.
 
-User runs notebook: load chosen base/adapter revisions (Drive or HF) -> authenticated /v1/chat/completions and health -> explicit authenticated tunnel start -> display endpoint and keep runtime running. GPU inference is serialized/bounded as appropriate for memory. Secrets remain in Colab; endpoint access token is configured locally through an ignored environment file, never chat/log output. Base and student aliases must be distinguishable for comparison.
+User runs notebook: load chosen base/adapter revisions (uploaded saved artifacts or HF) -> authenticated /v1/chat/completions and health -> explicit authenticated tunnel start -> display endpoint and keep runtime running. GPU inference is serialized/bounded as appropriate for memory. Secrets remain in Colab; endpoint access token is configured locally through an ignored environment file, never chat/log output. Base and student aliases must be distinguishable for comparison.
 
 Codex runs local gateway and checks auth, bounded timeouts, health, one image response and sanitized logs. Cloud fallback remains explicitly configured; no provider API entitlement is presumed from the HF token. If no external provider exists, a GPU-hosted teacher can supply the fallback alias, with serving-location disclosure and measured latency. Multiple paid providers remain optional. Done: authenticated local app -> gateway -> GPU student works and disconnects produce clear errors. Tunnel URLs are temporary runtime configuration, never committed working defaults.
 
@@ -168,10 +168,10 @@ Create shelfscan/templates/arena.html and API arena support; comparison failures
 
 ## Notebook handoff contract
 
-Every notebook starts with prerequisites, input hashes/paths, selected revisions, expected runtime characteristics and an explicit output directory. Install cells pin the last verified environment; reruns cannot silently pull new model/library revisions. Each phase saves durable progress to Drive and has restart/resume instructions. End with a small report bundle containing runtime/config manifest, status, summaries and errors; exclude secrets, large data and weights. Publication and tunnel-start cells clearly explain their side effects and run only when the user executes them.
+Every notebook starts with prerequisites, input hashes/paths, selected revisions, expected runtime characteristics and an explicit output directory. Install cells pin the last verified environment; reruns cannot silently pull new model/library revisions. Each phase saves progress in the runtime with downloadable artifacts and has restart/resume instructions. End with a small report bundle containing runtime/config manifest, status, summaries and errors; exclude secrets, large data and weights. Publication and tunnel-start cells clearly explain their side effects and run only when the user executes them.
 
-Codex hands off a notebook path, instructions, required artifact locations, exact cells to run and expected report files. The user runs it, saves artifacts and supplies report files or their accessible paths. Colab Drive files are not automatically visible from this local workspace; copying the compact report here or providing an accessible artifact is necessary. If execution fails, return the failing cell's sanitized error plus runtime report; Codex fixes the notebook and resumes from existing cache/checkpoints.
+Codex hands off a notebook path, instructions, required artifact locations, exact cells to run and expected report files. The user runs it, saves artifacts and supplies report files or their accessible paths. Colab runtime files are not automatically visible from this local workspace; copying the compact report here or providing an accessible artifact is necessary. If execution fails, return the failing cell's sanitized error plus runtime report; Codex fixes the notebook and resumes from existing cache/checkpoints.
 
 ## Immediate next task
 
-**Execute T03 in Colab.** Open notebooks/00_pilot.ipynb, put its matching t03_colab_inputs.zip on Drive, add HF_TOKEN in Colab Secrets and run the cells. Return pilot_reports.zip. The smoke adapter stays on Drive. T04 must wait for review of the real pilot gate; local stub tests do not complete that gate. See [T03_COLAB.md](T03_COLAB.md).
+**Execute T03 in Colab.** Open notebooks/00_pilot.ipynb, upload only pilot_inputs.zip when prompted, add HF_TOKEN in Colab Secrets and run the cells. Return pilot_reports.zip. Download the full results ZIP to save the smoke adapter. No storage mount is required. T04 must wait for review of the real pilot gate; local stub tests do not complete that gate. See [T03_COLAB.md](T03_COLAB.md).
