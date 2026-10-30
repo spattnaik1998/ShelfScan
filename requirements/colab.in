@@ -1,4 +1,5 @@
-# Candidate GPU environment; resolution is locked, actual GPU verification is user-run.
+# Resolve this file together with pyproject.toml for Linux Python 3.13.
+# Project dependency bounds must be included; GPU execution is user-run.
 torch==2.8.0
 torchvision==0.23.0
 transformers==4.57.1

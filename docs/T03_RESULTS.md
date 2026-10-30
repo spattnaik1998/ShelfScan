@@ -9,7 +9,7 @@ and a deterministic self-contained-code notebook builder. The revised notebook u
 
 Locally verified:
 
-- 75 tests passed, including foundation/annotation regressions, phased role replay
+- 77 tests passed, including foundation/annotation regressions, phased role replay
   with injected test workers, HF token/revision propagation, safe JSON parsing,
   source-frame OCR boxes, strict prompt-prefix loss masking, gate logic, secret-safe
   export and authenticated endpoint behavior. One upstream TestClient deprecation
@@ -31,3 +31,9 @@ See [T03_COLAB.md](T03_COLAB.md) for direct notebook run instructions. The gener
 `artifacts/t03_handoff.json` records embedded-source and image-input checksums. Download
 the full results ZIP to save the adapter and progress, and return `pilot_reports.zip`
 for review. No Drive or OneDrive mount is used. Nothing has been published to HF or deployed publicly by this preparation.
+
+Installation follow-up: the user's Python 3.13 log reproduced a Pillow 13.0.0 versus
+project Pillow<13 conflict. Fixed by resolving GPU requirements and pyproject.toml
+together for Python 3.13, selecting Pillow 12.3.0. The original resolver conflict was
+reproduced and the same resolution check passed after the fix. Added project/lockfile
+compatibility and redacted-install-error regression checks; GPU execution remains pending.

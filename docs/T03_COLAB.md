@@ -40,7 +40,8 @@ without paid HF hosted inference. EasyOCR downloads its public OCR weights separ
 Allow tens of GB of model/package downloads and disk space. Read model terms on HF if
 access approval is required. Model licenses are captured rather than assumed.
 
-The candidate GPU environment is pinned in `requirements/colab.lock.txt`; its actual
+The candidate GPU environment is pinned in `requirements/colab.lock.txt`, resolved for
+Linux Python 3.13 together with the project constraints in `pyproject.toml`; its actual
 GPU compatibility must be established by your execution. Local checks do not validate
 CUDA kernels, real OCR quality or model training. The gate requires all stages, at least
 8/12 accepted titles, cached replay, adapter reload and authenticated gateway success.
@@ -68,3 +69,18 @@ The 4-bit adapter preparation follows [PEFT quantization guidance](https://huggi
 The OCR adapter uses the [EasyOCR API](https://www.jaided.ai/easyocr/documentation/), and
 gateway aliases/key references use the [LiteLLM config contract](https://docs.litellm.ai/docs/proxy/configs).
 These sources establish API patterns, not successful execution of this pilot on Colab.
+
+## Installation conflict fixed
+
+The supplied Colab log identified Pillow 13.0.0 conflicting with ShelfScan's Pillow<13
+requirement. The lock now pins Pillow 12.3.0 and includes the project dependency bounds.
+Regenerate it with both inputs, never the GPU requirements alone:
+
+```text
+uv pip compile requirements/colab.in pyproject.toml --python-version 3.13 --python-platform x86_64-unknown-linux-gnu --only-binary :all: --output-file requirements/colab.lock.txt
+```
+
+Open the updated notebook and rerun setup to load its corrected embedded environment.
+An already uploaded Colab notebook does not update automatically when local files change.
+Installation failures now display a redacted pip log tail and save
+`install_error.redacted.txt`, rather than hiding the actual error in a private log.

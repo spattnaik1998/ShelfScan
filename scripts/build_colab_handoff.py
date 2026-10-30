@@ -150,28 +150,14 @@ def build(root: Path) -> dict:
         This may take several minutes and replaces incompatible preinstalled versions.
         Torch is not imported before installation. If told to restart the session,
         use Runtime → Restart session, then rerun from the top. Do not manually upgrade
-        individual packages. The lock targets Linux Python 3.11; installed versions and
-        the actual Python version are recorded for compatibility diagnosis.
+        individual packages. The lock targets Linux Python 3.13 and includes project
+        constraints. Installed versions and Python are recorded for diagnosis.
     """),
         code("""
-        import sys, subprocess, importlib.metadata as metadata
-        tracked = {'torch': 'torch', 'numpy': 'numpy', 'PIL': 'Pillow',
-                   'pydantic': 'pydantic', 'transformers': 'transformers'}
-        loaded = {module: str(getattr(sys.modules[module], '__version__', ''))
-                  for module in tracked if module in sys.modules}
-        install_log = OUTPUT / 'install.private.log'
-        with install_log.open('w') as log:
-            result = subprocess.run([sys.executable, '-m', 'pip', 'install',
-                '-r', str(PROJECT / 'requirements/colab.lock.txt'), '-e', str(PROJECT)],
-                stdout=log, stderr=log)
-        if result.returncode:
-            raise RuntimeError('Install failed; inspect private log before sharing')
-        stale = [module for module, version in loaded.items()
-                 if version and version != metadata.version(tracked[module])]
-        if stale:
-            raise RuntimeError('Packages changed in memory: restart session, rerun from top')
+        import sys
         sys.path.insert(0, str(PROJECT))
-        print('Pinned environment installed.')
+        from training.install import install_environment
+        install_environment(PROJECT, OUTPUT)
     """),
         markdown("""
         ## Authenticate, inspect GPU and resolve immutable model revisions
