@@ -141,7 +141,7 @@ def test_native_loader_passes_token_and_immutable_revision(monkeypatch, annotati
         SimpleNamespace(
             bfloat16="bf16",
             float16="fp16",
-            cuda=SimpleNamespace(is_available=lambda: True, is_bf16_supported=lambda: False),
+            cuda=SimpleNamespace(is_available=lambda: True, is_bf16_supported=lambda **kw: False),
         ),
     )
     monkeypatch.setitem(
@@ -246,3 +246,51 @@ def test_notebook_results_download_includes_adapter_and_excludes_private_logs(tm
             "smoke_adapter/adapter.safetensors",
             "pilot_decisions.json",
         }
+
+
+def test_native_bf16_excludes_emulation():
+    from training.runtime import native_bf16_supported
+
+    calls = []
+    cuda = SimpleNamespace(is_bf16_supported=lambda **kw: calls.append(kw) or False)
+    assert not native_bf16_supported(SimpleNamespace(cuda=cuda))
+    assert calls == [{"including_emulation": False}]
+
+
+def test_teacher_prompt_has_explicit_envelope_and_no_product_schema():
+    from annotation.orchestrator import ANNOTATE_PROMPT
+    from training.model_io import teacher_prompt
+
+    prompt = teacher_prompt(ANNOTATE_PROMPT)
+    assert '"fields"' in prompt and '"title"' in prompt
+    assert "category" not in prompt.lower()
+    assert "BookRecord" not in prompt
+
+
+def test_smolvlm_runtime_dependency_is_declared():
+    assert "num2words==0.5.14" in Path("requirements/colab.in").read_text()
+
+
+def test_teacher_invalid_response_is_saved_redacted(tmp_path, monkeypatch):
+    from annotation.contracts import TeacherRequest, VisualInput
+    from training.model_io import HubTeacher
+
+    token = "hf_" + "secret" * 8
+    monkeypatch.setenv("HF_TOKEN", token)
+    session = SimpleNamespace(
+        spec=SimpleNamespace(model_id="test/model"),
+        generate=lambda *args: "invalid JSON " + token,
+    )
+    request = TeacherRequest(
+        image=VisualInput(
+            image_id="test", image_sha256="x", image_bytes=b"pixels", width=1, height=1
+        ),
+        prompt="ignored conflicting product format",
+    )
+    path = tmp_path / "teacher_diagnostics.json"
+    with pytest.raises(ValueError):
+        HubTeacher(session, path).extract(request)
+    assert token not in path.read_text()
+    assert "invalid JSON" in path.read_text()
+    with ZipFile(export_reports(tmp_path)) as archive:
+        assert "teacher_diagnostics.json" in archive.namelist()

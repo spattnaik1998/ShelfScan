@@ -77,10 +77,20 @@ requirement. The lock now pins Pillow 12.3.0 and includes the project dependency
 Regenerate it with both inputs, never the GPU requirements alone:
 
 ```text
-uv pip compile requirements/colab.in pyproject.toml --python-version 3.13 --python-platform x86_64-unknown-linux-gnu --only-binary :all: --output-file requirements/colab.lock.txt
+uv pip compile requirements/colab.in pyproject.toml --python-version 3.13 --python-platform x86_64-unknown-linux-gnu --only-binary :all: --no-binary docopt --output-file requirements/colab.lock.txt
 ```
 
 Open the updated notebook and rerun setup to load its corrected embedded environment.
 An already uploaded Colab notebook does not update automatically when local files change.
 Installation failures now display a redacted pip log tail and save
 `install_error.redacted.txt`, rather than hiding the actual error in a private log.
+
+
+## Corrected pilot rerun
+
+Open the freshly updated `notebooks/00_pilot.ipynb` in a fresh Colab GPU session,
+not the previous uploaded copy. Keep its new `RUN_ID = 'pilot-v2'`; run cells from
+the top and upload the same pilot_inputs.zip. No Drive mount is needed. T4 now uses
+FP16; SmolVLM's required num2words dependency is included. A failed first-image
+teacher check stops that teacher pass and saves sanitized diagnostics. Download
+pilot_reports.zip and pilot-v2_results.zip at the end, including on failure.

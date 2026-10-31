@@ -37,3 +37,24 @@ project Pillow<13 conflict. Fixed by resolving GPU requirements and pyproject.to
 together for Python 3.13, selecting Pillow 12.3.0. The original resolver conflict was
 reproduced and the same resolution check passed after the fix. Added project/lockfile
 compatibility and redacted-install-error regression checks; GPU execution remains pending.
+
+
+## Returned GPU pilot and correction (2026-10-31)
+
+Reviewed pilot_reports.zip and pilot-v1_results.zip: dependency install and 12 OCR
+results succeeded, but Teacher A produced 0/12 valid candidates and Teacher B raised
+ImportError. Later stages were blocked; no smoke adapter exists. T03 has not passed.
+
+Corrected missing num2words dependency (required by the pinned SmolVLM processor),
+selected native BF16 only (FP16 on T4), and replaced conflicting teacher instructions
+with one explicit annotation envelope. Raw invalid responses and stage tracebacks are
+redacted before saving and included in the small report bundle. Teacher passes stop
+on a failed first-image check rather than spending GPU time on all 12 invalid responses.
+Run the regenerated notebooks/00_pilot.ipynb with new run ID pilot-v2. These changes
+need a new Colab execution; they do not establish the precise cause of the old invalid
+responses, which the original reports discarded.
+
+References: pinned SmolVLM processor source:
+https://github.com/huggingface/transformers/blob/v4.57.1/src/transformers/models/smolvlm/processing_smolvlm.py
+and PyTorch native/emulated BF16 API:
+https://docs.pytorch.org/docs/main/generated/torch.cuda.is_bf16_supported.html

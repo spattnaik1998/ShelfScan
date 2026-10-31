@@ -14,3 +14,4 @@ uvicorn==0.29.0
 httpx==0.28.1
 litellm[proxy]==1.79.1
 sentencepiece==0.2.1
+num2words==0.5.14

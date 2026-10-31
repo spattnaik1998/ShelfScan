@@ -7,6 +7,7 @@ from pathlib import Path
 from annotation.cache import atomic_json
 from shelfscan.prompt import EXTRACT_PROMPT
 from training.model_io import VisionSession, make_batch
+from training.runtime import native_bf16_supported
 
 
 def target_start(prompt_ids: list[int], full_ids: list[int]) -> int:
@@ -58,9 +59,9 @@ def run_smoke(spec, examples: list[tuple[bytes, dict]], output: Path, settings: 
             [p for p in session.model.parameters() if p.requires_grad],
             lr=settings["smoke_learning_rate"],
         )
-        scaler = torch.amp.GradScaler("cuda", enabled=not torch.cuda.is_bf16_supported())
+        scaler = torch.amp.GradScaler("cuda", enabled=not native_bf16_supported(torch))
         losses = []
-        dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+        dtype = torch.bfloat16 if native_bf16_supported(torch) else torch.float16
         for step in range(settings["smoke_steps"]):
             raw, record = examples[step % len(examples)]
             target = json.dumps(record, ensure_ascii=False, separators=(",", ":"))

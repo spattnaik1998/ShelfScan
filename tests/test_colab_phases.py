@@ -39,7 +39,7 @@ def test_phased_role_passes_and_replay_without_gpu(dataset_config, annotation_co
     monkeypatch.setattr("training.pilot.VisionSession", StubSession)
     monkeypatch.setattr(
         "training.pilot.HubTeacher",
-        lambda session: FakeTeacher(
+        lambda session, diagnostics: FakeTeacher(
             disagree=session.spec.family == "teacher_b",
         ),
     )
@@ -61,7 +61,7 @@ def test_phased_role_passes_and_replay_without_gpu(dataset_config, annotation_co
     assert not report["passed"]  # No baseline, training or gateway execution in this stub test.
 
 
-def test_stage_errors_persist_only_sanitized_types(dataset_config, annotation_config):
+def test_stage_errors_preserve_redacted_tracebacks(dataset_config, annotation_config, monkeypatch):
     prepare_dataset(dataset_config)
     build_split(dataset_config)
     root = dataset_config.parent.parent
@@ -72,9 +72,13 @@ def test_stage_errors_persist_only_sanitized_types(dataset_config, annotation_co
     settings = yaml.safe_load(Path("configs/colab.example.yaml").read_text())
     pilot = PilotSession(root, output, settings, annotation_config.roles)
 
+    token = "hf_" + "secret" * 8
+    monkeypatch.setenv("HF_TOKEN", token)
+
     def fail():
-        raise RuntimeError("private credential details")
+        raise ImportError("Missing num2words; token=" + token)
 
     assert not pilot.step("teacher_a", fail)
-    assert "private credential details" not in (output / "stage_errors.json").read_text()
+    assert token not in (output / "stage_errors.json").read_text()
+    assert "Missing num2words" in (output / "stage_errors.json").read_text()
     assert json.loads((output / "progress.json").read_bytes())["teacher_a"] == "failed"

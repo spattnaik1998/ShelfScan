@@ -1,6 +1,6 @@
 # ShelfScan task-driven implementation specification
 
-Status: T01-T02 verified complete; T03 prepared, awaiting user GPU run; T04-T13 pending. Updated 2026-10-29.
+Status: T01-T02 verified complete; T03 first GPU run failed, corrected rerun pending; T04-T13 pending. Updated 2026-10-29.
 
 This document defines the execution order and handoffs for [SPEC.md](SPEC.md). Product behavior, annotation policy and research remain defined in [PRD.md](PRD.md), [ANNOTATION_PLAN.md](ANNOTATION_PLAN.md) and [RESEARCH.md](RESEARCH.md). The T01 local foundation and T02 offline annotation engine are implemented; T03 notebook preparation is complete; real GPU execution and application tasks remain pending. See [T01 results](T01_RESULTS.md).
 
@@ -77,7 +77,7 @@ Command: uv run python -m scripts.pilot --config configs/annotation.yaml --backe
 
 ## T03 — Prepare and execute the 12-image Colab pilot
 
-Status: ready for user run. Local preparation/tests complete; GPU execution pending. [Run instructions](T03_COLAB.md) and [preparation report](T03_RESULTS.md).
+Status: first GPU run failed; corrected pilot-v2 ready for user rerun. See T03_RESULTS.md. [Run instructions](T03_COLAB.md) and [preparation report](T03_RESULTS.md).
 
 Codex creates notebooks/00_pilot.ipynb, training/__init__.py, training/runtime.py, training/model_io.py, training/smoke.py, serving/__init__.py, serving/app.py (initial authenticated inference skeleton), configs/models.example.yaml and configs/colab.example.yaml. Real model IDs/revisions are selected from official supported checkpoints at implementation time. GPU environment export is an artifact of the successful run.
 

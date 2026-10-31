@@ -15,6 +15,11 @@ from annotation.cache import atomic_json
 from annotation.contracts import RoleSpec
 
 
+def native_bf16_supported(torch) -> bool:
+    """Require native GPU support; T4 must use FP16 rather than emulated BF16."""
+    return torch.cuda.is_bf16_supported(including_emulation=False)
+
+
 def require_hf_token() -> str:
     token = os.environ.get("HF_TOKEN", "")
     if not token.startswith("hf_") or len(token) < 10:
@@ -33,7 +38,7 @@ def preflight(output: Path, minimum_gpu_gib: float = 14.0) -> dict:
         "gpu": properties.name,
         "gpu_memory_gib": round(properties.total_memory / 1024**3, 2),
         "cuda": torch.version.cuda,
-        "bf16": torch.cuda.is_bf16_supported(),
+        "bf16": native_bf16_supported(torch),
         "packages": {
             name: importlib.metadata.version(name)
             for name in (
@@ -128,6 +133,7 @@ def export_reports(output: Path) -> Path:
         "progress.json",
         "input_checksums.json",
         "stage_errors.json",
+        "teacher_diagnostics.json",
         "teacher_a_report.json",
         "teacher_b_report.json",
         "adjudicator_report.json",

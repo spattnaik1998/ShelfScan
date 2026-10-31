@@ -1,6 +1,7 @@
 """Phased Colab pilot: persistent OCR/A/B passes, adjudication, smoke and reports."""
 
 import json
+import traceback
 from pathlib import Path
 
 from annotation.cache import atomic_json
@@ -10,6 +11,7 @@ from scripts.annotate import load_inputs, single_writer
 from scripts.common import sha256
 from shelfscan.prompt import EXTRACT_PROMPT
 from shelfscan.schemas import BookRecord
+from training.install import redact
 from training.model_io import HubAdjudicator, HubTeacher, VisionSession
 from training.ocr import EasyOCRWorker
 from training.runtime import export_reports, load_json_object
@@ -107,10 +109,15 @@ class PilotSession:
                 self.progress[name] = "failed"
                 path = self.output / "stage_errors.json"
                 errors = json.loads(path.read_bytes()) if path.exists() else {}
-                # Do not persist exception messages that might contain tokens or headers.
-                errors[name] = {"error_type": type(exc).__name__, "retry": "Rerun failed cell"}
+                # Redact credentials before exporting actionable traceback diagnostics.
+                errors[name] = {
+                    "error_type": type(exc).__name__,
+                    "detail": redact(traceback.format_exc())[-12000:],
+                    "retry": "Rerun failed cell",
+                }
                 atomic_json(path, errors)
                 print(f"{name}: failed ({type(exc).__name__}); report bundle is still available")
+                print(redact(str(exc))[:2000])
                 return False
             finally:
                 atomic_json(self.output / "progress.json", self.progress)
@@ -134,7 +141,7 @@ class PilotSession:
     def teacher(self, role: str):
         self.require("ocr")
         session = VisionSession(self.specs[role])
-        worker = HubTeacher(session)
+        worker = HubTeacher(session, self.output / "teacher_diagnostics.json")
         engine = self.engine(**{role: worker})
         valid = 0
         try:
@@ -148,18 +155,22 @@ class PilotSession:
                         worker.extract,
                     )
                     valid += 1
-                except RoleFailed:
-                    pass
+                except RoleFailed as exc:
+                    if valid == 0:
+                        raise RuntimeError(
+                            "First-image teacher check failed; inspect teacher_diagnostics.json"
+                        ) from exc
+                    continue
         finally:
             session.close()
-        atomic_json(
-            self.output / f"{role}_report.json",
-            {
-                "valid": valid,
-                "total": len(self.inputs),
-                "metrics": session.metrics() if hasattr(session, "metrics") else None,
-            },
-        )
+            atomic_json(
+                self.output / f"{role}_report.json",
+                {
+                    "valid": valid,
+                    "total": len(self.inputs),
+                    "metrics": session.metrics() if hasattr(session, "metrics") else None,
+                },
+            )
         if valid == 0:
             raise RuntimeError("Teacher produced no valid annotation responses")
 

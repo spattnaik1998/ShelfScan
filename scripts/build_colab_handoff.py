@@ -84,7 +84,7 @@ def build(root: Path) -> dict:
     """),
         code("""
         from pathlib import Path
-        RUN_ID = 'pilot-v1'  # Change only for a deliberate new experiment.
+        RUN_ID = 'pilot-v2'  # Change only for a deliberate new experiment.
         PROJECT = Path('/content/shelfscan_t03')
         OUTPUT = Path('/content/shelfscan_results') / RUN_ID
         OUTPUT.mkdir(parents=True, exist_ok=True)
