@@ -84,7 +84,7 @@ def build(root: Path) -> dict:
     """),
         code("""
         from pathlib import Path
-        RUN_ID = 'pilot-v6'  # Change only for a deliberate new experiment.
+        RUN_ID = 'pilot-v7'  # Change only for a deliberate new experiment.
         PROJECT = Path('/content/shelfscan_t03')
         OUTPUT = Path('/content/shelfscan_results') / RUN_ID
         OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -295,6 +295,32 @@ def build(root: Path) -> dict:
     directory = root / "notebooks"
     directory.mkdir(exist_ok=True)
     (directory / "00_pilot.ipynb").write_bytes(json_bytes(notebook))
+    recovery_source = (root / "training/parser_recovery.py").read_text(encoding="utf-8")
+    recovery = {
+        **notebook,
+        "cells": [
+            {
+                **markdown(
+                    "Copy the following code cell into your PAUSED pilot-v6 notebook. "
+                    "Run it in the same runtime where pilot and OUTPUT still exist. "
+                    "It revalidates the saved numeric-year response, keeps earlier valid "
+                    "calls and reruns the original benchmark. Do not restart or rerun setup."
+                ),
+                "id": "recovery-instructions",
+            },
+            {
+                **code(
+                    recovery_source + "\nactive_pilot = globals().get('pilot')\n"
+                    "if active_pilot is None:\n"
+                    "    raise RuntimeError('Copy this cell into the paused pilot notebook')\n"
+                    "print(recover_year_quote(active_pilot))\n"
+                    "active_pilot.step('teacher_b_check', active_pilot.teacher_b_benchmark)"
+                ),
+                "id": "recovery-code",
+            },
+        ],
+    }
+    (directory / "resume_pilot_v6.ipynb").write_bytes(json_bytes(recovery))
     result = {
         "embedded_source_sha256": digest,
         "embedded_source_bytes": bundle.stat().st_size,

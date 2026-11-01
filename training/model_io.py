@@ -211,13 +211,22 @@ def parse_candidate(text: str) -> Candidate:
         data = {"fields": data}
     fields = data.get("fields")
     if isinstance(fields, dict):
-        for claim in fields.values():
+        for name, claim in fields.items():
             if not isinstance(claim, dict):
                 continue
             if "quote" in claim:
                 if set(claim) != {"status", "value", "quote"}:
                     raise ValueError("Compact claim requires exactly status, value, quote")
                 quote = claim.pop("quote")
+                if (
+                    name == "year"
+                    and claim["status"] == "present"
+                    and type(quote) is int
+                    and type(claim["value"]) is int
+                    and quote == claim["value"]
+                    and 1800 <= quote <= 2100
+                ):
+                    quote = str(quote)
                 if claim["status"] == "present":
                     if not isinstance(quote, str) or not quote.strip():
                         raise ValueError("Present claims require a visible supporting quote")

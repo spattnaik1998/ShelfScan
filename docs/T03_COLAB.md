@@ -172,3 +172,23 @@ If the new benchmark fails, stop and return reports rather than weakening its ga
 References: [model card](https://huggingface.co/HuggingFaceM4/Idefics3-8B-Llama3),
 [pinned native model mapping](https://github.com/huggingface/transformers/blob/v4.57.1/src/transformers/models/auto/modeling_auto.py),
 [pinned processor](https://github.com/huggingface/transformers/blob/v4.57.1/src/transformers/models/idefics3/image_processing_idefics3.py).
+
+
+### Numeric-year quote correction: resume pilot-v6 or start pilot-v7
+
+Idefics3 returned valid schema on 2/3 images; the third had integer quote 2016 instead
+of string "2016". The parser now converts only a present year quote whose integer
+value exactly equals an integer year in 1800..2100. It still rejects booleans, floats,
+null/empty evidence and mismatched numeric quotes. OCR verification is unchanged.
+
+For the paused runtime, open notebooks/resume_pilot_v6.ipynb and COPY its code cell
+into the existing paused Colab notebook. Run it there, where pilot and OUTPUT exist.
+It patches the parser in memory and revalidates saved diagnostic responses against
+checksummed role caches, current model and image provenance. No new model call is
+made by recovery. Recovered results record parser_revalidation provenance and
+parser_recovery_report.json. Original generation attempts remain in the ledger.
+The cell then reruns teacher_b_check and its OCR benchmark. Only continue when True.
+Do not clear caches or rerun setup for this recovery path.
+
+For a new session instead, run updated 00_pilot.ipynb from the top with pilot-v7.
+Actual title accuracy and all downstream gates remain pending your returned reports.

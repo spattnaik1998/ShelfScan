@@ -108,3 +108,17 @@ remain unverified until the user's pilot-v6 execution. Source references in T03_
 Replacement integration verification: 102 local tests pass; lint and formatting pass.
 Loader tests use injected stubs and benchmark tests use synthetic OCR; they do not
 prove real Idefics3 loading, VRAM fit or extraction accuracy on Colab.
+
+
+## Numeric-year quote correction and paused-session recovery
+
+Returned pilot-v6 report: 2/3 schema-valid, three generations in 66.648 inference
+seconds and 6.273 GiB peak allocated VRAM. The third failed because quote was integer
+2016 while the value was integer 2016. Accept only this exact present-year integer
+to-text conversion; other evidence and claim constraints remain strict. Added recovery
+which patches the paused parser, verifies current image/model and cache checksum,
+revalidates the saved response, and records parser_revalidation without erasing the
+original attempts or generating again. Recovery reruns the unmodified OCR benchmark.
+The fresh-session notebook is pilot-v7; notebooks/resume_pilot_v6.ipynb provides a
+copyable cell for the existing runtime. 111 local tests pass. Real benchmark title
+support and downstream training/serving remain pending user execution.

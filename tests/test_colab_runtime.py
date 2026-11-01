@@ -388,3 +388,25 @@ def test_default_teacher_b_is_larger_different_family_without_fieldwise_workarou
     assert config["teacher_b"]["family"] != config["teacher_a"]["family"]
     assert config["teacher_b"]["parameters"]["quantize"] is True
     assert not config["teacher_b"]["parameters"].get("fieldwise", False)
+
+
+@pytest.mark.parametrize("quote", [2016, "2016"])
+def test_year_quote_accepts_equivalent_integer_text(quote):
+    from annotation.contracts import FIELDS
+    from training.model_io import parse_candidate
+
+    fields = {name: {"status": "unknown", "value": None, "quote": None} for name in FIELDS}
+    fields["year"] = {"status": "present", "value": 2016, "quote": quote}
+    result = parse_candidate(json.dumps({"fields": fields}))
+    assert result.fields["year"].evidence[0].quote == "2016"
+
+
+@pytest.mark.parametrize("quote", [True, 2016.0, 2017, None, ""])
+def test_year_quote_does_not_coerce_other_invalid_evidence(quote):
+    from annotation.contracts import FIELDS
+    from training.model_io import parse_candidate
+
+    fields = {name: {"status": "unknown", "value": None, "quote": None} for name in FIELDS}
+    fields["year"] = {"status": "present", "value": 2016, "quote": quote}
+    with pytest.raises(ValueError):
+        parse_candidate(json.dumps({"fields": fields}))
