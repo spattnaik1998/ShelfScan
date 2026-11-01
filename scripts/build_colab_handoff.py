@@ -78,13 +78,13 @@ def build(root: Path) -> dict:
            The results ZIP includes the saved model adapter and annotation progress.
            Results are saved under `/content/shelfscan_results/` in the current runtime.
 
-        Teacher A/adjudicator: Qwen2.5-VL-7B (4-bit). Teacher B: SmolVLM2-2.2B.
+        Teacher A/adjudicator: Qwen2.5-VL-7B (4-bit). Teacher B: Idefics3-8B-Llama3 (4-bit).
         Student: Qwen2.5-VL-3B (4-bit). Revisions resolve once and are saved. A failed
         gate is an honest result: do not tune on test data or describe it as passed.
     """),
         code("""
         from pathlib import Path
-        RUN_ID = 'pilot-v5'  # Change only for a deliberate new experiment.
+        RUN_ID = 'pilot-v6'  # Change only for a deliberate new experiment.
         PROJECT = Path('/content/shelfscan_t03')
         OUTPUT = Path('/content/shelfscan_results') / RUN_ID
         OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -199,13 +199,13 @@ def build(root: Path) -> dict:
     """),
         code("pilot.step('ocr', pilot.ocr)"),
         markdown(
-            "Run these one-image checks first. "
+            "Run these preliminary checks first. "
             "Continue to full teacher passes only when both return True. "
-            "Teacher B validates seven individual fields with at most two attempts each. "
-            "It saves each field and reuses validated work; no invalid field is filled in."
+            "Teacher B is now Idefics3-8B-Llama3 (4-bit). Its three-image benchmark requires "
+            "three valid records and at least two OCR-supported titles before full passes."
         ),
         code("pilot.step('teacher_a_check', lambda: pilot.teacher('teacher_a', limit=1))"),
-        code("pilot.step('teacher_b_check', lambda: pilot.teacher('teacher_b', limit=1))"),
+        code("pilot.step('teacher_b_check', pilot.teacher_b_benchmark)"),
         code(
             "pilot.require('teacher_a_check', 'teacher_b_check')\n"
             "pilot.step('teacher_a', lambda: pilot.teacher('teacher_a'))"

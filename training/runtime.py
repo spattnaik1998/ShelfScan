@@ -137,6 +137,7 @@ def export_reports(output: Path) -> Path:
         "teacher_a_diagnostics.json",
         "teacher_b_diagnostics.json",
         "teacher_b_field_report.json",
+        "teacher_b_benchmark.json",
         "teacher_a_check_report.json",
         "teacher_b_check_report.json",
         "teacher_a_report.json",

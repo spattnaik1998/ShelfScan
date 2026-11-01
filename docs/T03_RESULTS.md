@@ -91,3 +91,20 @@ selects this path only for Teacher B; Teacher A retains the exact flat/wrapped p
 Role-specific diagnostics prevent old Qwen failures being confused with current
 SmolVLM errors. Stage success clears old stage errors. Fresh pilot-v5 run required;
 live generation and the T03 gate remain unverified until returned Colab reports.
+
+
+## pilot-v6: replace the failing second teacher
+
+SmolVLM still misidentified title/series text as authors and emitted unrelated keys,
+even with fieldwise correction. Replaced the default with Idefics3-8B-Llama3, a
+Llama-based alternative to Qwen, in 4-bit. Native class support and processor sizing
+were checked against the pinned Transformers v4.57.1 source, not assumed from latest
+API examples. Added a three-input feasibility benchmark requiring valid records and
+>=2 OCR-supported titles; schema validation alone cannot pass this benchmark. No new
+libraries or inference provider costs. Existing SmolVLM helpers are disabled by config,
+not silently used as fallback. GPU loading, quantized quality and benchmark outcomes
+remain unverified until the user's pilot-v6 execution. Source references in T03_COLAB.md.
+
+Replacement integration verification: 102 local tests pass; lint and formatting pass.
+Loader tests use injected stubs and benchmark tests use synthetic OCR; they do not
+prove real Idefics3 loading, VRAM fit or extraction accuracy on Colab.

@@ -4,10 +4,10 @@ teacher_a:
   family: qwen2_5_vl
   parameters: {quantize: true, max_new_tokens: 1200, max_seconds: 120, repetition_penalty: 1.1}
 teacher_b:
-  model_id: HuggingFaceTB/SmolVLM2-2.2B-Instruct
+  model_id: HuggingFaceM4/Idefics3-8B-Llama3
   revision: main
-  family: smolvlm
-  parameters: {quantize: false, max_new_tokens: 1200, max_seconds: 35, repetition_penalty: 1.1, fieldwise: true}
+  family: idefics3
+  parameters: {quantize: true, max_new_tokens: 1400, max_seconds: 120, repetition_penalty: 1.05, image_longest_edge: 728}
 adjudicator:
   model_id: Qwen/Qwen2.5-VL-7B-Instruct
   revision: main

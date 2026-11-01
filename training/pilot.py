@@ -7,6 +7,7 @@ from pathlib import Path
 from annotation.cache import atomic_json
 from annotation.contracts import AnnotationConfig, Candidate, OCRResult, RoleSpec, TeacherRequest
 from annotation.orchestrator import ANNOTATE_PROMPT, AnnotationEngine, RoleFailed
+from annotation.verify import evidence_support
 from scripts.annotate import load_inputs, single_writer
 from scripts.common import sha256
 from shelfscan.prompt import EXTRACT_PROMPT
@@ -182,8 +183,55 @@ class PilotSession:
                     "metrics": session.metrics() if hasattr(session, "metrics") else None,
                 },
             )
+        if limit is not None and valid != len(self.inputs[:limit]):
+            raise RuntimeError("Benchmark requires valid responses for every selected image")
         if valid == 0:
             raise RuntimeError("Teacher produced no valid annotation responses")
+
+    def teacher_b_benchmark(self):
+        """Fail closed before the full pass: schema plus independent OCR title evidence."""
+        count = 3
+        self.teacher("teacher_b", limit=count)
+        engine = self.engine()
+        rows = []
+        for image, metadata in self.inputs[:count]:
+            candidate = engine.call(
+                "teacher_b",
+                image,
+                TeacherRequest(image=image, prompt=ANNOTATE_PROMPT),
+                Candidate,
+                CacheOnly().extract,
+            )
+            ocr = engine.call("ocr", image, image, OCRResult, CacheOnly().read)
+            title = candidate.fields["title"]
+            supported = (
+                title.status == "present"
+                and evidence_support(
+                    title,
+                    ocr,
+                    self.config.min_ocr_confidence,
+                )[1]
+            )
+            rows.append(
+                {
+                    "image_id": metadata["id"],
+                    "title_status": title.status,
+                    "ocr_supported_title": supported,
+                }
+            )
+        supported = sum(row["ocr_supported_title"] for row in rows)
+        report = {
+            "passed": len(rows) == count and supported >= 2,
+            "schema_valid": len(rows),
+            "required_inputs": count,
+            "ocr_supported_titles": supported,
+            "minimum_supported_titles": 2,
+            "rows": rows,
+            "note": "OCR support is a feasibility proxy, not human ground truth",
+        }
+        atomic_json(self.output / "teacher_b_benchmark.json", report)
+        if not report["passed"]:
+            raise RuntimeError("Replacement teacher benchmark failed; return pilot_reports.zip")
 
     def annotate(self):
         self.require("ocr", "teacher_a", "teacher_b")

@@ -34,7 +34,7 @@ Private installation/gateway logs are excluded from the downloadable results ZIP
 - Report and complete-results downloads, including partial results when a stage fails.
 
 Teacher A/adjudicator: `Qwen/Qwen2.5-VL-7B-Instruct`, 4-bit. Teacher B:
-`HuggingFaceTB/SmolVLM2-2.2B-Instruct`. Student: `Qwen/Qwen2.5-VL-3B-Instruct`,
+`HuggingFaceM4/Idefics3-8B-Llama3`, 4-bit. Student: `Qwen/Qwen2.5-VL-3B-Instruct`,
 4-bit. The HF token authenticates downloads; inference/training uses the Colab GPU,
 without paid HF hosted inference. EasyOCR downloads its public OCR weights separately.
 Allow tens of GB of model/package downloads and disk space. Read model terms on HF if
@@ -143,3 +143,32 @@ If either check fails, skip the full passes and use the final export cells. Down
 pilot_reports.zip and pilot-v5_results.zip and return them for review. Full results
 include durable teacher_b_fields.json; small reports include role-specific diagnostics
 and field counts. No adapter or title-coverage success is implied by parser tests.
+
+
+### Current handoff: pilot-v6 - replacement Teacher B
+
+Teacher B is HuggingFaceM4/Idefics3-8B-Llama3 (Llama-backed), replacing the failed
+SmolVLM default. It uses native Transformers 4.57.1, trust_remote_code=False, NF4
+4-bit weights, native precision selection (FP16 on T4), SDPA, and a 728px longest-edge
+processor limit to bound image tiles. No new package installation or gated fallback
+is added. HF_TOKEN authenticates model downloads; inference uses the Colab GPU.
+Allow a new multi-GB weight download and extra runtime disk space. Actual GPU memory
+and output quality must be measured in your run; neither is claimed proven locally.
+
+Open the updated notebooks/00_pilot.ipynb in a fresh GPU session with pilot-v6 and run
+from the top. Upload the same pilot_inputs.zip. Teacher A retains its one-image check.
+The existing teacher_b_check cell now benchmarks three images: all three outputs must
+validate and at least two titles must have matching visible quotes supported by OCR.
+This is a feasibility proxy, not human-ground-truth accuracy. Both checks must pass
+before full teacher passes. All 12 inputs, >=8 accepted titles, student reload and
+serving gates still apply afterwards. Successful benchmark calls are cached/reused.
+
+The old fieldwise SmolVLM module remains available for diagnostics/tests but is disabled
+in the default model config. The parser still rejects empty evidence and contradictory
+claims. No automatic model fallback or manual annotation is introduced. Return
+pilot_reports.zip with teacher_b_benchmark.json; download pilot-v6_results.zip as well.
+If the new benchmark fails, stop and return reports rather than weakening its gate.
+
+References: [model card](https://huggingface.co/HuggingFaceM4/Idefics3-8B-Llama3),
+[pinned native model mapping](https://github.com/huggingface/transformers/blob/v4.57.1/src/transformers/models/auto/modeling_auto.py),
+[pinned processor](https://github.com/huggingface/transformers/blob/v4.57.1/src/transformers/models/idefics3/image_processing_idefics3.py).

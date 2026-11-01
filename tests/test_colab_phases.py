@@ -66,6 +66,17 @@ def test_phased_role_passes_and_replay_without_gpu(
     assert pilot.step("annotate", pilot.annotate)
     ledger = RoleCache(output / "annotation/raw")
     assert ledger.total_attempts() == 48
+    # Fake Teacher B deliberately disagrees with OCR; schema validity alone must fail.
+    with pytest.raises(RuntimeError, match="benchmark failed"):
+        pilot.teacher_b_benchmark()
+    monkeypatch.setattr("training.pilot.evidence_support", lambda *args: (True, True))
+    pilot.teacher_b_benchmark()
+    benchmark = json.loads((output / "teacher_b_benchmark.json").read_text())
+    assert benchmark["passed"] and benchmark["ocr_supported_titles"] == 3
+    monkeypatch.setattr("training.pilot.evidence_support", lambda *args: (True, False))
+    with pytest.raises(RuntimeError, match="benchmark failed"):
+        pilot.teacher_b_benchmark()
+    assert not json.loads((output / "teacher_b_benchmark.json").read_text())["passed"]
     pilot.resume()
     assert ledger.total_attempts() == 48
     assert json.loads((output / "resume_report.json").read_bytes())["new_attempts"] == 0

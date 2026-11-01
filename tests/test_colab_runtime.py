@@ -124,7 +124,8 @@ def test_hub_revisions_are_resolved_once_without_serializing_token(tmp_path, mon
     assert "test-license" in (output / "model_licenses.json").read_text()
 
 
-def test_native_loader_passes_token_and_immutable_revision(monkeypatch, annotation_config):
+@pytest.mark.parametrize("family", ["qwen2_5_vl", "idefics3"])
+def test_native_loader_passes_token_and_immutable_revision(monkeypatch, annotation_config, family):
     token = "hf_" + "dummy" * 8
     monkeypatch.setenv("HF_TOKEN", token)
     calls = []
@@ -133,7 +134,7 @@ def test_native_loader_passes_token_and_immutable_revision(monkeypatch, annotati
         @staticmethod
         def from_pretrained(name, **kwargs):
             calls.append((name, kwargs))
-            return SimpleNamespace(eval=lambda: None)
+            return SimpleNamespace(eval=lambda: None, image_processor=SimpleNamespace())
 
     monkeypatch.setitem(
         sys.modules,
@@ -156,7 +157,7 @@ def test_native_loader_passes_token_and_immutable_revision(monkeypatch, annotati
     spec = annotation_config.roles["teacher_a"].model_copy(
         update={
             "revision": "a" * 40,
-            "family": "qwen2_5_vl",
+            "family": family,
             "parameters": {"quantize": True},
         }
     )
@@ -169,6 +170,9 @@ def test_native_loader_passes_token_and_immutable_revision(monkeypatch, annotati
         for _, kwargs in calls
     )
     assert calls[-1][1]["quantization_config"]["bnb_4bit_compute_dtype"] == "fp16"
+    if family == "idefics3":
+        assert calls[0][1]["use_fast"] is False
+        assert calls[0][1]["size"] == {"longest_edge": 728}
 
 
 def test_notebook_cells_are_valid_python_and_have_no_outputs():
@@ -376,3 +380,11 @@ def test_flat_teacher_format_does_not_relax_contract(change):
         fields["year"]["value"] = 2021
     with pytest.raises(ValueError):
         parse_candidate(json.dumps(fields))
+
+
+def test_default_teacher_b_is_larger_different_family_without_fieldwise_workaround():
+    config = yaml.safe_load(Path("configs/models.example.yaml").read_text())
+    assert config["teacher_b"]["model_id"] == "HuggingFaceM4/Idefics3-8B-Llama3"
+    assert config["teacher_b"]["family"] != config["teacher_a"]["family"]
+    assert config["teacher_b"]["parameters"]["quantize"] is True
+    assert not config["teacher_b"]["parameters"].get("fieldwise", False)
