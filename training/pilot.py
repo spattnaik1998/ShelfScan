@@ -11,6 +11,7 @@ from scripts.annotate import load_inputs, single_writer
 from scripts.common import sha256
 from shelfscan.prompt import EXTRACT_PROMPT
 from shelfscan.schemas import BookRecord
+from training.field_teacher import FieldwiseTeacher
 from training.install import redact
 from training.model_io import HubAdjudicator, HubTeacher, VisionSession
 from training.ocr import EasyOCRWorker
@@ -102,6 +103,11 @@ class PilotSession:
                 return True
             try:
                 action()
+                errors_path = self.output / "stage_errors.json"
+                if errors_path.exists():
+                    errors = json.loads(errors_path.read_text())
+                    errors.pop(name, None)
+                    atomic_json(errors_path, errors)
                 self.progress[name] = "ok"
                 print(f"{name}: complete")
                 return True
@@ -141,7 +147,11 @@ class PilotSession:
     def teacher(self, role: str, limit: int | None = None):
         self.require("ocr")
         session = VisionSession(self.specs[role])
-        worker = HubTeacher(session, self.output / "teacher_diagnostics.json")
+        worker = (
+            FieldwiseTeacher(session, self.output)
+            if role == "teacher_b" and self.specs[role].parameters.get("fieldwise", False)
+            else HubTeacher(session, self.output / f"{role}_diagnostics.json")
+        )
         engine = self.engine(**{role: worker})
         valid = 0
         try:
@@ -158,7 +168,8 @@ class PilotSession:
                 except RoleFailed as exc:
                     if valid == 0:
                         raise RuntimeError(
-                            "First-image teacher check failed; inspect teacher_diagnostics.json"
+                            f"First-image {role} check failed; inspect {role}_diagnostics.json "
+                            "and stage_errors.json"
                         ) from exc
                     continue
         finally:

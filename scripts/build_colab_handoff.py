@@ -84,7 +84,7 @@ def build(root: Path) -> dict:
     """),
         code("""
         from pathlib import Path
-        RUN_ID = 'pilot-v4'  # Change only for a deliberate new experiment.
+        RUN_ID = 'pilot-v5'  # Change only for a deliberate new experiment.
         PROJECT = Path('/content/shelfscan_t03')
         OUTPUT = Path('/content/shelfscan_results') / RUN_ID
         OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -200,7 +200,9 @@ def build(root: Path) -> dict:
         code("pilot.step('ocr', pilot.ocr)"),
         markdown(
             "Run these one-image checks first. "
-            "Continue to full teacher passes only when both return True."
+            "Continue to full teacher passes only when both return True. "
+            "Teacher B validates seven individual fields with at most two attempts each. "
+            "It saves each field and reuses validated work; no invalid field is filled in."
         ),
         code("pilot.step('teacher_a_check', lambda: pilot.teacher('teacher_a', limit=1))"),
         code("pilot.step('teacher_b_check', lambda: pilot.teacher('teacher_b', limit=1))"),

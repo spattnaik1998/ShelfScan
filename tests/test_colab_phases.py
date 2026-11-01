@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 
 from annotation.cache import RoleCache
@@ -11,7 +12,10 @@ from scripts.split import build_split
 from training.pilot import PilotSession
 
 
-def test_phased_role_passes_and_replay_without_gpu(dataset_config, annotation_config, monkeypatch):
+@pytest.mark.parametrize("fieldwise", [False, True])
+def test_phased_role_passes_and_replay_without_gpu(
+    dataset_config, annotation_config, monkeypatch, fieldwise
+):
     prepare_dataset(dataset_config)
     build_split(dataset_config)
     root = dataset_config.parent.parent
@@ -29,6 +33,10 @@ def test_phased_role_passes_and_replay_without_gpu(dataset_config, annotation_co
         ),
     }
 
+    specs["teacher_b"] = specs["teacher_b"].model_copy(
+        update={"parameters": {"fieldwise": fieldwise}}
+    )
+
     class StubSession:
         def __init__(self, spec):
             self.spec = spec
@@ -42,6 +50,9 @@ def test_phased_role_passes_and_replay_without_gpu(dataset_config, annotation_co
         lambda session, diagnostics: FakeTeacher(
             disagree=session.spec.family == "teacher_b",
         ),
+    )
+    monkeypatch.setattr(
+        "training.pilot.FieldwiseTeacher", lambda session, output: FakeTeacher(disagree=True)
     )
     monkeypatch.setattr("training.pilot.HubAdjudicator", lambda _: FakeAdjudicator())
     monkeypatch.setattr("training.pilot.EasyOCRWorker", lambda *args: FakeOCR())

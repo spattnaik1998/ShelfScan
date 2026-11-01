@@ -77,7 +77,7 @@ Command: uv run python -m scripts.pilot --config configs/annotation.yaml --backe
 
 ## T03 — Prepare and execute the 12-image Colab pilot
 
-Status: first GPU run failed; corrected pilot-v3 ready for user rerun. See T03_RESULTS.md. [Run instructions](T03_COLAB.md) and [preparation report](T03_RESULTS.md).
+Status: first GPU run failed; corrected pilot-v5 ready for user rerun. See T03_RESULTS.md. [Run instructions](T03_COLAB.md) and [preparation report](T03_RESULTS.md).
 
 Codex creates notebooks/00_pilot.ipynb, training/__init__.py, training/runtime.py, training/model_io.py, training/smoke.py, serving/__init__.py, serving/app.py (initial authenticated inference skeleton), configs/models.example.yaml and configs/colab.example.yaml. Real model IDs/revisions are selected from official supported checkpoints at implementation time. GPU environment export is an artifact of the successful run.
 

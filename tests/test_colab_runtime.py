@@ -213,6 +213,9 @@ def test_embedded_notebook_code_unpacks_without_external_archive(tmp_path):
     exec(compile(source, "<notebook-bootstrap>", "exec"), scope)
     manifest = json.loads((project / "handoff_manifest.json").read_bytes())
     assert (project / "training/pilot.py").is_file()
+    assert (project / "training/field_teacher.py").read_bytes() == Path(
+        "training/field_teacher.py"
+    ).read_bytes()
     assert (project / "requirements/colab.lock.txt").is_file()
     assert (project / "requirements/colab.lock.txt").read_bytes() == Path(
         "requirements/colab.lock.txt"

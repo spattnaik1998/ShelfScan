@@ -115,3 +115,31 @@ The latest notebook accepts either the fields envelope or exactly the seven name
 fields at the top level. No missing/extra keys or contradictory claims are repaired.
 Use the rebuilt notebook with pilot-v4 from the top; the new run avoids the previous
 terminal failure cache. Both one-image checks still precede the full passes.
+
+
+### Current handoff: pilot-v5 (field-by-field Teacher B)
+
+Open the freshly rebuilt notebooks/00_pilot.ipynb in a fresh Colab GPU session and
+run from the top with RUN_ID pilot-v5. Upload the same pilot_inputs.zip; no Drive
+mount or code upload is needed. The previous paused notebook embeds older helpers;
+continuing its cells will not load this fix.
+
+Teacher A keeps the strict flat/wrapped parser. Teacher B now requests seven separate
+claims with <=384 generated tokens per call, a soft 35-second generation limit,
+and at most two attempts per field (initial call plus one validation correction).
+The 12-image pilot has a persistent additional ceiling of 168 field generations.
+This costs more model calls than the previous single-response approach. Calls are
+local GPU inference, not paid HF inference. GPU operation remains user-verified.
+
+Both one-image checks must return True before the full passes. Teacher B prints
+field progress and reuses validated field results on rerun. Missing/invalid fields
+are never silently changed into absent or unknown labels. The new output directory
+avoids terminal errors cached by earlier code. Historical attempt failures stay in
+teacher_b_diagnostics.json; teacher_b_field_report.json reports current valid and
+unresolved counts. Teacher A diagnostics are separate. Successfully rerun stages
+clear their stale stage_errors entry.
+
+If either check fails, skip the full passes and use the final export cells. Download
+pilot_reports.zip and pilot-v5_results.zip and return them for review. Full results
+include durable teacher_b_fields.json; small reports include role-specific diagnostics
+and field counts. No adapter or title-coverage success is implied by parser tests.

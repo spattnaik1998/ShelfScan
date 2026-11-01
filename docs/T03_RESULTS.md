@@ -77,3 +77,17 @@ Local verification after pilot-v3 changes: 86 tests passed; Ruff lint/format pas
 All four supplied Qwen response payloads validate after dropping unsupported model
 boxes; the supplied truncated SmolVLM payload remains correctly rejected. Actual
 SmolVLM regeneration and the complete pilot gate await the user GPU run.
+
+
+## pilot-v5: field-by-field SmolVLM
+
+The returned SmolVLM JSON contained a field list, omitted other_text, supplied empty
+quotes for present claims and a non-null unknown year. These are semantic supervision
+failures as well as format errors. Added training/field_teacher.py: independently
+request and validate each field, retry once with validation feedback, persist before
+each generation, retain successful fields and enforce per-field and total call limits.
+Exhausted/invalid fields fail the teacher; no partial candidate is returned. Config
+selects this path only for Teacher B; Teacher A retains the exact flat/wrapped parser.
+Role-specific diagnostics prevent old Qwen failures being confused with current
+SmolVLM errors. Stage success clears old stage errors. Fresh pilot-v5 run required;
+live generation and the T03 gate remain unverified until returned Colab reports.
