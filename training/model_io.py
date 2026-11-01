@@ -10,6 +10,7 @@ from PIL import Image
 
 from annotation.cache import atomic_json
 from annotation.contracts import (
+    FIELDS,
     Adjudication,
     AdjudicationRequest,
     Candidate,
@@ -191,6 +192,9 @@ def teacher_prompt(_request_prompt: str) -> str:
 def parse_candidate(text: str) -> Candidate:
     """Adapt compact claims without guessing values, statuses or localization."""
     data = load_json_object(text)
+    # Only an exact seven-field flat object may omit the envelope.
+    if set(data) == set(FIELDS):
+        data = {"fields": data}
     fields = data.get("fields")
     if isinstance(fields, dict):
         for claim in fields.values():

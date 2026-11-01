@@ -344,3 +344,32 @@ def test_truncated_repeating_response_stays_invalid():
 
     with pytest.raises(ValueError):
         parse_candidate('{"fields":{"authors":{"value":"' + "B." * 500)
+
+
+@pytest.mark.parametrize("wrapped", [True, False])
+def test_teacher_accepts_exact_flat_or_wrapped_fields(wrapped):
+    from annotation.contracts import FIELDS
+    from training.model_io import parse_candidate
+
+    fields = {name: {"status": "unknown", "value": None, "quote": None} for name in FIELDS}
+    fields["title"] = {"status": "present", "value": "Example Book", "quote": "Example Book"}
+    payload = {"fields": fields} if wrapped else fields
+    result = parse_candidate("```json\n" + json.dumps(payload) + "\n```")
+    assert result.fields["title"].value == "Example Book"
+    assert result.fields["year"].status == "unknown"
+
+
+@pytest.mark.parametrize("change", ["missing", "extra", "contradiction"])
+def test_flat_teacher_format_does_not_relax_contract(change):
+    from annotation.contracts import FIELDS
+    from training.model_io import parse_candidate
+
+    fields = {name: {"status": "unknown", "value": None, "quote": None} for name in FIELDS}
+    if change == "missing":
+        del fields["title"]
+    elif change == "extra":
+        fields["unexpected"] = None
+    else:
+        fields["year"]["value"] = 2021
+    with pytest.raises(ValueError):
+        parse_candidate(json.dumps(fields))

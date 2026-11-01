@@ -107,3 +107,11 @@ quote evidence and null model boxes. OCR localization remains unchanged. Legacy
 model boxes are discarded without guessing coordinates. Non-null unknown values,
 malformed JSON and truncated responses remain rejected. Repetition penalty 1.1 and
 a 1200-token teacher limit reduce runaway output; GPU behavior still needs validation.
+
+
+### pilot-v4 parser compatibility
+
+The latest notebook accepts either the fields envelope or exactly the seven named
+fields at the top level. No missing/extra keys or contradictory claims are repaired.
+Use the rebuilt notebook with pilot-v4 from the top; the new run avoids the previous
+terminal failure cache. Both one-image checks still precede the full passes.
