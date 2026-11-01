@@ -89,8 +89,21 @@ Installation failures now display a redacted pip log tail and save
 ## Corrected pilot rerun
 
 Open the freshly updated `notebooks/00_pilot.ipynb` in a fresh Colab GPU session,
-not the previous uploaded copy. Keep its new `RUN_ID = 'pilot-v2'`; run cells from
+not the previous uploaded copy. Keep its new `RUN_ID = 'pilot-v3'`; run cells from
 the top and upload the same pilot_inputs.zip. No Drive mount is needed. T4 now uses
 FP16; SmolVLM's required num2words dependency is included. A failed first-image
 teacher check stops that teacher pass and saves sanitized diagnostics. Download
-pilot_reports.zip and pilot-v2_results.zip at the end, including on failure.
+pilot_reports.zip and pilot-v3_results.zip at the end, including on failure.
+
+
+### pilot-v3 teacher checks
+
+Run the updated notebook from the top in a fresh GPU session. After OCR, run the
+one-image teacher_a_check and teacher_b_check cells. Both must return True before
+running the full teacher passes; successful checks are cached and reused. If either
+fails, skip the full passes and use the final export cells to return pilot_reports.zip.
+The compact teacher format omits boxes/reasons; Python builds strict claims with
+quote evidence and null model boxes. OCR localization remains unchanged. Legacy
+model boxes are discarded without guessing coordinates. Non-null unknown values,
+malformed JSON and truncated responses remain rejected. Repetition penalty 1.1 and
+a 1200-token teacher limit reduce runaway output; GPU behavior still needs validation.

@@ -47,6 +47,9 @@ def test_phased_role_passes_and_replay_without_gpu(dataset_config, annotation_co
     monkeypatch.setattr("training.pilot.EasyOCRWorker", lambda *args: FakeOCR())
     pilot = PilotSession(root, output, settings, specs)
     assert pilot.step("ocr", pilot.ocr)
+    assert pilot.step("teacher_a_check", lambda: pilot.teacher("teacher_a", limit=1))
+    assert pilot.step("teacher_b_check", lambda: pilot.teacher("teacher_b", limit=1))
+    assert json.loads((output / "teacher_b_check_report.json").read_text())["total"] == 1
     assert pilot.step("teacher_a", lambda: pilot.teacher("teacher_a"))
     assert pilot.step("teacher_b", lambda: pilot.teacher("teacher_b"))
     assert pilot.step("annotate", pilot.annotate)

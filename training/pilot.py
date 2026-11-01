@@ -138,14 +138,14 @@ class PilotSession:
         if failures:
             raise RuntimeError("OCR calls failed; inspect private role errors")
 
-    def teacher(self, role: str):
+    def teacher(self, role: str, limit: int | None = None):
         self.require("ocr")
         session = VisionSession(self.specs[role])
         worker = HubTeacher(session, self.output / "teacher_diagnostics.json")
         engine = self.engine(**{role: worker})
         valid = 0
         try:
-            for image, _ in self.inputs:
+            for image, _ in self.inputs[:limit]:
                 try:
                     engine.call(
                         role,
@@ -164,10 +164,10 @@ class PilotSession:
         finally:
             session.close()
             atomic_json(
-                self.output / f"{role}_report.json",
+                self.output / (f"{role}_check_report.json" if limit else f"{role}_report.json"),
                 {
                     "valid": valid,
-                    "total": len(self.inputs),
+                    "total": len(self.inputs[:limit]),
                     "metrics": session.metrics() if hasattr(session, "metrics") else None,
                 },
             )

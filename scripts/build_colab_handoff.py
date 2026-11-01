@@ -84,7 +84,7 @@ def build(root: Path) -> dict:
     """),
         code("""
         from pathlib import Path
-        RUN_ID = 'pilot-v2'  # Change only for a deliberate new experiment.
+        RUN_ID = 'pilot-v3'  # Change only for a deliberate new experiment.
         PROJECT = Path('/content/shelfscan_t03')
         OUTPUT = Path('/content/shelfscan_results') / RUN_ID
         OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -198,8 +198,20 @@ def build(root: Path) -> dict:
         even if a gate fails. Fixes that change models/config/code require a new RUN_ID.
     """),
         code("pilot.step('ocr', pilot.ocr)"),
-        code("pilot.step('teacher_a', lambda: pilot.teacher('teacher_a'))"),
-        code("pilot.step('teacher_b', lambda: pilot.teacher('teacher_b'))"),
+        markdown(
+            "Run these one-image checks first. "
+            "Continue to full teacher passes only when both return True."
+        ),
+        code("pilot.step('teacher_a_check', lambda: pilot.teacher('teacher_a', limit=1))"),
+        code("pilot.step('teacher_b_check', lambda: pilot.teacher('teacher_b', limit=1))"),
+        code(
+            "pilot.require('teacher_a_check', 'teacher_b_check')\n"
+            "pilot.step('teacher_a', lambda: pilot.teacher('teacher_a'))"
+        ),
+        code(
+            "pilot.require('teacher_a_check', 'teacher_b_check')\n"
+            "pilot.step('teacher_b', lambda: pilot.teacher('teacher_b'))"
+        ),
         code("pilot.step('annotate', pilot.annotate)"),
         markdown("""
         ## Student baseline and tiny LoRA save/reload check

@@ -58,3 +58,22 @@ References: pinned SmolVLM processor source:
 https://github.com/huggingface/transformers/blob/v4.57.1/src/transformers/models/smolvlm/processing_smolvlm.py
 and PyTorch native/emulated BF16 API:
 https://docs.pytorch.org/docs/main/generated/torch.cuda.is_bf16_supported.html
+
+
+## pilot-v2 diagnostics and pilot-v3 correction
+
+Returned diagnostics establish that some Qwen responses failed only on unsupported
+model box formats (pixel arrays and text labels), while SmolVLM generated a truncated
+repetitive string. The earlier import error no longer occurs in the supplied trace.
+Replaced the all-unknown example with compact mixed-status field examples. Teachers
+return status/value/quote; deterministic conversion retains strict value validation
+and supplies evidence with null boxes. Unsupported legacy model localization is
+explicitly discarded, not converted into guessed coordinates. Truncated JSON remains
+invalid. Added configurable repetition penalty and smaller teacher output budgets.
+The rebuilt notebook uses pilot-v3 and requires both cached one-image checks before
+full passes. This does not establish live model quality or completion of T03.
+
+Local verification after pilot-v3 changes: 86 tests passed; Ruff lint/format passed.
+All four supplied Qwen response payloads validate after dropping unsupported model
+boxes; the supplied truncated SmolVLM payload remains correctly rejected. Actual
+SmolVLM regeneration and the complete pilot gate await the user GPU run.

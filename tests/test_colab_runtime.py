@@ -195,6 +195,8 @@ def test_notebook_cells_are_valid_python_and_have_no_outputs():
         for node in ast.walk(ast.parse(source))
     )
     assert "pilot.finish()" in text and "pilot.gateway" in text
+    assert "teacher_a_check" in text and "teacher_b_check" in text
+    assert "limit=1" in text
     assert "drive.mount" not in text and "/content/drive" not in text
     assert "files.upload()" in text and "results_zip" in text
 
@@ -294,3 +296,51 @@ def test_teacher_invalid_response_is_saved_redacted(tmp_path, monkeypatch):
     assert "invalid JSON" in path.read_text()
     with ZipFile(export_reports(tmp_path)) as archive:
         assert "teacher_diagnostics.json" in archive.namelist()
+
+
+@pytest.mark.parametrize("box", [[96, 107, 320, 140], "Title", "[365, 197, 472, 304]"])
+def test_teacher_discards_untrusted_model_localization(box):
+    from annotation.contracts import FIELDS, TeacherRequest, VisualInput
+    from training.model_io import HubTeacher
+
+    fields = {
+        name: {"status": "unknown", "value": None, "evidence": [], "reason": "Uncertain"}
+        for name in FIELDS
+    }
+    fields["title"] = {
+        "status": "present",
+        "value": "Example",
+        "evidence": [{"quote": "Example", "box": box}],
+        "reason": "Visible",
+    }
+    session = SimpleNamespace(generate=lambda *args: json.dumps({"fields": fields}))
+    request = TeacherRequest(
+        image=VisualInput(image_id="x", image_sha256="x", image_bytes=b"x", width=1, height=1),
+        prompt="",
+    )
+    result = HubTeacher(session).extract(request)
+    assert result.fields["title"].value == "Example"
+    assert result.fields["title"].evidence[0].box is None
+
+
+def test_compact_teacher_response_keeps_unknown_distinct_from_absent():
+    from annotation.contracts import FIELDS
+    from training.model_io import parse_candidate
+
+    fields = {name: {"status": "unknown", "value": None, "quote": None} for name in FIELDS}
+    fields["title"] = {"status": "present", "value": "Example", "quote": "Example"}
+    fields["price"] = {"status": "absent", "value": None, "quote": None}
+    result = parse_candidate(json.dumps({"fields": fields}))
+    assert result.fields["title"].evidence[0].quote == "Example"
+    assert result.fields["price"].status == "absent"
+    assert result.fields["authors"].status == "unknown"
+    fields["authors"]["value"] = "Invented"
+    with pytest.raises(ValueError):
+        parse_candidate(json.dumps({"fields": fields}))
+
+
+def test_truncated_repeating_response_stays_invalid():
+    from training.model_io import parse_candidate
+
+    with pytest.raises(ValueError):
+        parse_candidate('{"fields":{"authors":{"value":"' + "B." * 500)
