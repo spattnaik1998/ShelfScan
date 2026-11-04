@@ -84,7 +84,7 @@ def build(root: Path) -> dict:
     """),
         code("""
         from pathlib import Path
-        RUN_ID = 'pilot-v7'  # Change only for a deliberate new experiment.
+        RUN_ID = 'pilot-v8'  # Change only for a deliberate new experiment.
         PROJECT = Path('/content/shelfscan_t03')
         OUTPUT = Path('/content/shelfscan_results') / RUN_ID
         OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -198,6 +198,10 @@ def build(root: Path) -> dict:
         even if a gate fails. Fixes that change models/config/code require a new RUN_ID.
     """),
         code("pilot.step('ocr', pilot.ocr)"),
+        code(
+            "from training.title_recovery import install_title_recovery\n"
+            "install_title_recovery(pilot)"
+        ),
         markdown(
             "Run these preliminary checks first. "
             "Continue to full teacher passes only when both return True. "
@@ -321,6 +325,40 @@ def build(root: Path) -> dict:
         ],
     }
     (directory / "resume_pilot_v6.ipynb").write_bytes(json_bytes(recovery))
+    title_source = (root / "annotation/title_evidence.py").read_text(encoding="utf-8")
+    title_source += "\n" + (root / "training/title_recovery.py").read_text(
+        encoding="utf-8"
+    ).replace("from annotation.title_evidence import title_support, title_windows\n", "")
+    title_resume = {
+        **notebook,
+        "cells": [
+            {
+                **markdown(
+                    "Copy cell 2 into your existing paused pilot notebook and run it there. "
+                    "Keep the runtime and saved results. It rechecks saved titles by OCR "
+                    "rotation/adjacent region and retries unsupported titles at most twice "
+                    "per image on GPU. It may still fail; do not bypass the evidence gate. "
+                    "This cell can take several minutes. Both teacher checks must be True "
+                    "before full passes."
+                ),
+                "id": "title-recovery-instructions",
+            },
+            {
+                **code(
+                    title_source + "\nactive_pilot = globals().get('pilot')\n"
+                    "if active_pilot is None:\n"
+                    "    raise RuntimeError('Copy this cell into your paused pilot notebook')\n"
+                    "install_title_recovery(active_pilot)\n"
+                    "passed = active_pilot.step(\n"
+                    "    'teacher_b_check', active_pilot.teacher_b_benchmark)\n"
+                    "print((active_pilot.output / 'teacher_b_benchmark.json').read_text())\n"
+                    "print('Continue only when both teacher checks passed:', passed)"
+                ),
+                "id": "title-recovery-code",
+            },
+        ],
+    }
+    (directory / "resume_title_evidence.ipynb").write_bytes(json_bytes(title_resume))
     result = {
         "embedded_source_sha256": digest,
         "embedded_source_bytes": bundle.stat().st_size,

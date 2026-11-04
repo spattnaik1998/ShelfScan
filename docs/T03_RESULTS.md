@@ -122,3 +122,19 @@ original attempts or generating again. Recovery reruns the unmodified OCR benchm
 The fresh-session notebook is pilot-v7; notebooks/resume_pilot_v6.ipynb provides a
 copyable cell for the existing runtime. 111 local tests pass. Real benchmark title
 support and downstream training/serving remain pending user execution.
+
+
+## Rotation-specific title evidence and bounded OCR-guided recovery
+
+User-supplied comparisons show a punctuation/OCR-noise mismatch on Jurisprudence,
+a changed connector on Blackstone's, and an incorrect Administrator's title for
+Administrative Tribunals. Added conservative same-rotation adjacent-span title checks
+and bounded image-plus-OCR title retries. No generic fuzzy matching or reduced gate.
+Added paused-runtime recovery notebook, original-result backups, OCR-assisted repair
+provenance and durable retry attempts. Fixed benchmark reporting to distinguish
+hashed cache image_id from dataset_id. Initial checks remain a feasibility proxy;
+real image quality and the 2/3 benchmark must still be confirmed by user execution.
+
+Local verification: 117 tests passed; lint and formatting passed. New matching,
+rejection, durable retries and paused-pilot cache recovery were tested with fixtures.
+The real three-image title benchmark must still be run in the user Colab session.

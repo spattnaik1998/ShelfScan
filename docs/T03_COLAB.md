@@ -192,3 +192,37 @@ Do not clear caches or rerun setup for this recovery path.
 
 For a new session instead, run updated 00_pilot.ipynb from the top with pilot-v7.
 Actual title accuracy and all downstream gates remain pending your returned reports.
+
+
+### Recover the title-evidence gate in the existing runtime
+
+Open notebooks/resume_title_evidence.ipynb and copy its entire code cell 2 into a
+NEW bottom cell of your existing paused pilot-v6 notebook. Run it there; pilot and
+OUTPUT must still exist. Keep the runtime and caches. The numeric-year recovery
+must already have completed if it was needed. This is different from the previous
+resume_pilot_v6.ipynb parser-only patch.
+
+This cell installs title-only matching of ordered word tokens across at most six
+spatially adjacent OCR spans from one rotation/crop. It ignores punctuation/case,
+filters low-confidence spans using the existing threshold, and does not permit word
+substitutions or arbitrary fuzzy similarity. It then loads Teacher B only for titles
+that still lack support and retries each at most twice, with 250 output tokens per
+retry and a persistent ceiling of 24 calls across this pilot. Several minutes may be
+needed. GPU retries and existing cached responses remain distinct in reports.
+
+Supported corrections retain all other fields. The original response is preserved
+in original_result; title_repair records OCR-assisted provenance and a checksummed
+OCR digest, with detailed attempts in title_retry_ledger.json. An unsupported title
+is left unsupported; no pass is forced. OCR-guided retries share verifier evidence,
+so this is not an independent ground-truth assessment. Never claim otherwise.
+
+The cell automatically reruns teacher_b_check and prints the benchmark with both
+cache image IDs and original dataset IDs. If True, run the existing full teacher_a
+and teacher_b cells in order, then annotation/baseline/smoke/gateway cells. The same
+title policy applies to full Teacher B calls and title verification. If False, return
+pilot_reports.zip and title_recovery_report.json; do not rerun recovery repeatedly
+or lower the gate. No restart or full input upload is required for the paused run.
+
+Fresh runs use rebuilt 00_pilot.ipynb with pilot-v8 and install this policy after OCR.
+If annotation, baseline, smoke or gateway already passed in this run, the patch refuses
+to modify those completed downstream results; use the fresh-session notebook instead.
