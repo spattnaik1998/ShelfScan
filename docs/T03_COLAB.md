@@ -236,3 +236,8 @@ pilot-recovery-v2 run, reuses verified successful results, retries failed fields
 versioned budgets, and compacts adjudicator input. Earlier copy/paste patch cells
 are superseded for this recovery. Upload the existing pilot_inputs.zip and full
 pilot-v6_results.zip only if prompted. Do not run training after a failed coverage gate.
+
+
+## Current pilot correction: evidence-first v3
+
+Use [the evidence-first partial pilot guide](EVIDENCE_PARTIAL_PILOT.md) and `notebooks/evidence_partial_pilot.ipynb` for the latest v2 results. This versioned training-only pilot replays saved proposals against OCR and requires at least eight accepted titles across eight distinct groups. It replaces the complete-record prerequisite only in this pilot with audited masking of all unknown field keys/values. Unknown is never absence. The original full-record gate and production/evaluation requirements remain recorded separately. Offline replay yields nine eligible examples; GPU mask audit, two-step training/reload and serving remain to be executed in Colab.

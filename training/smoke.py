@@ -30,6 +30,8 @@ def run_smoke(spec, examples: list[tuple[bytes, dict]], output: Path, settings: 
     before = session.generate(raw, EXTRACT_PROMPT)
     baseline = {"text": before, "note": "Training-only pilot baseline; not a held-out score"}
     atomic_json(output / "baseline.json", baseline)
+    mask_audits = []
+    partial = settings.get("partial_supervision", False)
     try:
         if spec.parameters.get("quantize", False):
             session.model = prepare_model_for_kbit_training(session.model)
@@ -64,14 +66,43 @@ def run_smoke(spec, examples: list[tuple[bytes, dict]], output: Path, settings: 
         dtype = torch.bfloat16 if native_bf16_supported(torch) else torch.float16
         for step in range(settings["smoke_steps"]):
             raw, record = examples[step % len(examples)]
-            target = json.dumps(record, ensure_ascii=False, separators=(",", ":"))
+            if partial:
+                from training.partial import render_target
+
+                target, _ = render_target(record)
+            else:
+                target = json.dumps(record, ensure_ascii=False, separators=(",", ":"))
             prompt = make_batch(session.processor, raw, EXTRACT_PROMPT)
             batch = make_batch(session.processor, raw, EXTRACT_PROMPT, target)
-            start = target_start(prompt["input_ids"][0].tolist(), batch["input_ids"][0].tolist())
             if batch["input_ids"].shape[1] > settings["max_training_tokens"]:
                 raise RuntimeError("Training example exceeds token budget; no unsafe truncation")
-            labels = batch["input_ids"].clone()
-            labels[:, :start] = -100
+            if partial:
+                from training.partial import partial_labels
+
+                values, audit = partial_labels(
+                    session.processor,
+                    prompt["input_ids"][0].tolist(),
+                    batch["input_ids"][0].tolist(),
+                    record,
+                )
+                labels = torch.tensor(values, dtype=batch["input_ids"].dtype).unsqueeze(0)
+                mask_audits.append({"step": step, **audit})
+                atomic_json(
+                    output / "smoke_supervision_report.json",
+                    {
+                        "policy": "partial-fields-v1",
+                        "steps": mask_audits,
+                        "unknown_supervised_tokens": sum(
+                            a["unknown_supervised_tokens"] for a in mask_audits
+                        ),
+                    },
+                )
+            else:
+                start = target_start(
+                    prompt["input_ids"][0].tolist(), batch["input_ids"][0].tolist()
+                )
+                labels = batch["input_ids"].clone()
+                labels[:, :start] = -100
             labels[batch["attention_mask"] == 0] = -100
             if int((labels != -100).sum()) == 0:
                 raise RuntimeError("No assistant supervision")
@@ -98,6 +129,7 @@ def run_smoke(spec, examples: list[tuple[bytes, dict]], output: Path, settings: 
             {
                 "base": spec.model_dump(mode="json"),
                 "scope": "pilot smoke only; not final model",
+                "supervision_policy": "partial-fields-v1" if partial else "complete-record-v1",
             },
         )
         # Release optimizer and graph tensors too; otherwise reload can falsely OOM.
@@ -116,6 +148,7 @@ def run_smoke(spec, examples: list[tuple[bytes, dict]], output: Path, settings: 
             "same_decoded_output_after_reload": expected == actual,
             "adapter_directory": "smoke_adapter",
             "base_revision": spec.revision,
+            "supervision_policy": "partial-fields-v1" if partial else "complete-record-v1",
         }
         atomic_json(output / "smoke_reload_report.json", report)
         return report

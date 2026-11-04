@@ -107,3 +107,8 @@ The actionable file-by-file backlog, ownership, notebook handoffs and dependenci
 Meaningful unit checks cover split leakage, unknown/null semantics, evidence decisions, bounded retry/cache resume, masks, schema/routing and blocked-write behavior using fakes. Live checks cover selected models, GPU save/reload, authenticated gateway scan and guard behavior. No test requires a guaranteed fine-tuning gain or successful attack.
 
 Done: reproducible run manifests; reported exclusions and benchmark limitations; saved/reloadable adapter; working scan/store/search; no exposed credentials; measured security comparison; dataset/model attribution; documented fresh-start steps and runtime requirements. Test claims and target values must be distinguished from actual measurements.
+
+
+## Current pilot correction: evidence-first v3
+
+Use [the evidence-first partial pilot guide](EVIDENCE_PARTIAL_PILOT.md) and `notebooks/evidence_partial_pilot.ipynb` for the latest v2 results. This versioned training-only pilot replays saved proposals against OCR and requires at least eight accepted titles across eight distinct groups. It replaces the complete-record prerequisite only in this pilot with audited masking of all unknown field keys/values. Unknown is never absence. The original full-record gate and production/evaluation requirements remain recorded separately. Offline replay yields nine eligible examples; GPU mask audit, two-step training/reload and serving remain to be executed in Colab.

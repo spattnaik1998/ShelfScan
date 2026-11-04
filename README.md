@@ -123,3 +123,8 @@ The local dataset README and LICENSE identify this attribution. Prepared images 
 EXIF orientation correction, resizing and JPEG recompression. Attribution is included in
 the pilot archive. Model labels and training artifacts do not yet exist; their eventual
 cards must retain dataset attribution and document automated-reference limitations.
+
+
+## Current pilot correction: evidence-first v3
+
+Use [the evidence-first partial pilot guide](docs/EVIDENCE_PARTIAL_PILOT.md) and `notebooks/evidence_partial_pilot.ipynb` for the latest v2 results. This versioned training-only pilot replays saved proposals against OCR and requires at least eight accepted titles across eight distinct groups. It replaces the complete-record prerequisite only in this pilot with audited masking of all unknown field keys/values. Unknown is never absence. The original full-record gate and production/evaluation requirements remain recorded separately. Offline replay yields nine eligible examples; GPU mask audit, two-step training/reload and serving remain to be executed in Colab.

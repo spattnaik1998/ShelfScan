@@ -28,7 +28,7 @@ def restore_results(archive, destination):
                 raise ValueError("Import target already has different source results")
             path.write_bytes(data)
     if not (destination / "models.resolved.yaml").is_file():
-        raise ValueError("Use the full pilot-v6_results.zip, not the small reports archive")
+        raise ValueError("Use the full results ZIP, not the small pilot_reports.zip archive")
     if not (destination / "annotation/raw").is_dir():
         raise ValueError("Full results archive is missing role caches")
 

@@ -49,3 +49,8 @@ Primary serving path: a small authenticated OpenAI-compatible service around the
 - [ ] Saved adapter reloads; HF artifact includes processor, manifest, model/data attribution.
 - [ ] One image works through gateway as shelfscan-local; base model available for comparison.
 - [ ] Downloaded checkpoints, runtime setup steps and clearly labeled cached/recorded demo fallback.
+
+
+## Current pilot correction: evidence-first v3
+
+Use [the evidence-first partial pilot guide](EVIDENCE_PARTIAL_PILOT.md) and `notebooks/evidence_partial_pilot.ipynb` for the latest v2 results. This versioned training-only pilot replays saved proposals against OCR and requires at least eight accepted titles across eight distinct groups. It replaces the complete-record prerequisite only in this pilot with audited masking of all unknown field keys/values. Unknown is never absence. The original full-record gate and production/evaluation requirements remain recorded separately. Offline replay yields nine eligible examples; GPU mask audit, two-step training/reload and serving remain to be executed in Colab.

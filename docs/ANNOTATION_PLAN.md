@@ -78,3 +78,8 @@ Create train, validation and test payload lists with no exact overlap. Augmentat
 6. Security measurements and demo; comparison UI only if time remains.
 
 Estimated effort is provisional: pilot/setup 1-2 hours, orchestration implementation 2-4 hours, full annotation dependent on pilot throughput, training/evaluation 1-3 hours, app/security/demo 3-6 hours. These are work estimates, not promised GPU runtimes. Keep checkpoints and logs on Drive; prefer one working GPU serving path over multiple export formats.
+
+
+## Current pilot correction: evidence-first v3
+
+Use [the evidence-first partial pilot guide](EVIDENCE_PARTIAL_PILOT.md) and `notebooks/evidence_partial_pilot.ipynb` for the latest v2 results. This versioned training-only pilot replays saved proposals against OCR and requires at least eight accepted titles across eight distinct groups. It replaces the complete-record prerequisite only in this pilot with audited masking of all unknown field keys/values. Unknown is never absence. The original full-record gate and production/evaluation requirements remain recorded separately. Offline replay yields nine eligible examples; GPU mask audit, two-step training/reload and serving remain to be executed in Colab.

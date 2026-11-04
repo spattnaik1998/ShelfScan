@@ -181,3 +181,8 @@ verified and reused; no Drive mount or manual patch cell is required. If a stage
 fails, run the final download cells and return pilot_reports.zip. Save the full
 pilot-recovery-v2_results.zip. T04 waits for the real data/training/serving gates.
 See [ANNOTATION_RECOVERY.md](ANNOTATION_RECOVERY.md).
+
+
+## Current pilot correction: evidence-first v3
+
+Use [the evidence-first partial pilot guide](EVIDENCE_PARTIAL_PILOT.md) and `notebooks/evidence_partial_pilot.ipynb` for the latest v2 results. This versioned training-only pilot replays saved proposals against OCR and requires at least eight accepted titles across eight distinct groups. It replaces the complete-record prerequisite only in this pilot with audited masking of all unknown field keys/values. Unknown is never absence. The original full-record gate and production/evaluation requirements remain recorded separately. Offline replay yields nine eligible examples; GPU mask audit, two-step training/reload and serving remain to be executed in Colab.
