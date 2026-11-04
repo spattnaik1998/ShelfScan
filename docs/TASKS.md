@@ -1,6 +1,6 @@
 # ShelfScan task-driven implementation specification
 
-Status: T01-T02 verified complete; T03 first GPU run failed, corrected rerun pending; T04-T13 pending. Updated 2026-10-29.
+Status: T01-T02 verified complete; T03 first GPU run failed, corrected rerun pending; T04-T13 pending. Updated 2026-11-04.
 
 This document defines the execution order and handoffs for [SPEC.md](SPEC.md). Product behavior, annotation policy and research remain defined in [PRD.md](PRD.md), [ANNOTATION_PLAN.md](ANNOTATION_PLAN.md) and [RESEARCH.md](RESEARCH.md). The T01 local foundation and T02 offline annotation engine are implemented; T03 notebook preparation is complete; real GPU execution and application tasks remain pending. See [T01 results](T01_RESULTS.md).
 
@@ -77,7 +77,7 @@ Command: uv run python -m scripts.pilot --config configs/annotation.yaml --backe
 
 ## T03 — Prepare and execute the 12-image Colab pilot
 
-Status: first GPU run failed; title-evidence pilot-v8 ready for user rerun. See T03_RESULTS.md. [Run instructions](T03_COLAB.md) and [preparation report](T03_RESULTS.md).
+Status: first GPU run failed; consolidated recovery ready for user rerun. See T03_RESULTS.md. [Run instructions](T03_COLAB.md) and [preparation report](T03_RESULTS.md).
 
 Codex creates notebooks/00_pilot.ipynb, training/__init__.py, training/runtime.py, training/model_io.py, training/smoke.py, serving/__init__.py, serving/app.py (initial authenticated inference skeleton), configs/models.example.yaml and configs/colab.example.yaml. Real model IDs/revisions are selected from official supported checkpoints at implementation time. GPU environment export is an artifact of the successful run.
 
@@ -174,4 +174,10 @@ Codex hands off a notebook path, instructions, required artifact locations, exac
 
 ## Immediate next task
 
-**Execute T03 in Colab.** Open notebooks/00_pilot.ipynb, upload only pilot_inputs.zip when prompted, add HF_TOKEN in Colab Secrets and run the cells. Return pilot_reports.zip. Download the full results ZIP to save the smoke adapter. No storage mount is required. T04 must wait for review of the real pilot gate; local stub tests do not complete that gate. See [T03_COLAB.md](T03_COLAB.md).
+**Run the consolidated recovery notebook.** Open notebooks/recover_annotations.ipynb
+in Colab and run from the first cell. Reuse existing runtime results or upload the
+saved pilot-v6_results.zip and pilot_inputs.zip when prompted. Source successes are
+verified and reused; no Drive mount or manual patch cell is required. If a stage
+fails, run the final download cells and return pilot_reports.zip. Save the full
+pilot-recovery-v2_results.zip. T04 waits for the real data/training/serving gates.
+See [ANNOTATION_RECOVERY.md](ANNOTATION_RECOVERY.md).

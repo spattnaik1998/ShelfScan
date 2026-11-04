@@ -138,3 +138,27 @@ real image quality and the 2/3 benchmark must still be confirmed by user executi
 Local verification: 117 tests passed; lint and formatting passed. New matching,
 rejection, durable retries and paused-pilot cache recovery were tested with fixtures.
 The real three-image title benchmark must still be run in the user Colab session.
+
+
+## Consolidated annotation recovery (2026-11-04)
+
+Reviewed full pilot-v6 archive: all 40 role-cache envelopes verified; OCR 12 valid,
+Teacher A 11 valid/1 failed, Teacher B 4 valid/8 failed, adjudicator 1 valid/3 failed.
+Only 1/12 final titles accepted and zero complete records. Baseline schema-valid
+8/12, no adapter. Full source teacher failures include single-quoted Python literals,
+malformed JSON, empty evidence quotes and incorrect author types. Adjudicator role
+errors retained generic model_call_error codes, consistent with mapped GPU OOM; source context included 12k-20k characters of OCR.
+
+Built a versioned recovery run preserving original data and source model revisions.
+Field-aware bounded adapters retain useful fields, issue targeted corrections and
+abstain on unresolved claims. Compact adjudication has hard input budgets and
+stable execution error codes. Full teacher stages now require all input responses;
+annotation quality requires >=8 accepted titles and >=1 complete record before
+baseline/training can run. New notebook, import provenance, source snapshots and
+structured coverage reports replace the manual patch chain. Real GPU/quality gates
+remain pending returned pilot-recovery-v2 results; passing CPU tests does not pass T03.
+
+Final local verification: 131 tests passed, Ruff lint/format passed. The actual
+returned archive import reused 27 successful role outputs without GPU calls.
+The new recovery notebook bootstrap was verified to contain the current helpers.
+GPU execution, annotation quality and the full T03 gate await user execution.

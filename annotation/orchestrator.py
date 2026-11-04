@@ -73,7 +73,7 @@ class AnnotationEngine:
         self.new_attempts = 0
         self.cache_hits = 0
 
-    def call(self, role: str, image: VisualInput, request, result_type: type[BaseModel], fn):
+    def provenance(self, role: str, image: VisualInput, request, result_type: type[BaseModel]):
         # Pixel bytes are omitted from JSON; their verified digest is included instead.
         request_data = (
             request.model_dump(mode="json", exclude={"image"})
@@ -91,6 +91,10 @@ class AnnotationEngine:
             "request_sha256": sha256(json_bytes(request_data)),
             "result_schema_sha256": sha256(json_bytes(result_type.model_json_schema())),
         }
+        return provenance
+
+    def call(self, role: str, image: VisualInput, request, result_type: type[BaseModel], fn):
+        provenance = self.provenance(role, image, request, result_type)
         key = self.cache.key(provenance)
         state = self.cache.load(key) or {
             "provenance": provenance,
@@ -121,7 +125,21 @@ class AnnotationEngine:
                 state["result"] = result.model_dump(mode="json")
             except ModelCallError as exc:
                 # Only stable exception type/code is logged, never arbitrary provider messages.
-                attempt.update(status="error", retryable=exc.retryable, error="model_call_error")
+                attempt.update(
+                    status="error",
+                    retryable=exc.retryable,
+                    error="model_call_error",
+                    error_code=exc.code
+                    if exc.code
+                    in {
+                        "gpu_oom",
+                        "input_token_budget",
+                        "structured_generation_budget",
+                        "structured_wall_budget",
+                        "transport_error",
+                    }
+                    else "other_model_error",
+                )
             except (ValidationError, TypeError, ValueError):
                 attempt.update(status="error", retryable=False, error="invalid_role_response")
             finally:

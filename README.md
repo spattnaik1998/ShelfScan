@@ -5,7 +5,7 @@ model. An offline pipeline will generate evidence-checked training labels with O
 two independent vision teachers and bounded adjudication. A gateway-backed web app
 and Colab training notebooks follow in later tasks.
 
-## Current implementation: T01-T02 complete; T03 ready for Colab
+## Current implementation: T01-T02 complete; T03 recovery pending
 
 Available now: installable Python project, strict shared output schemas, versioned
 extraction prompt, bounded image preprocessing, inventory/hashes, provisional visual
@@ -15,12 +15,11 @@ T02 adds the bounded annotation engine with typed evidence, independent teacher/
 interfaces, selective adjudication, quarantine, durable retries, caching and reports.
 The current CLI uses fake models only and never emits training-eligible labels.
 
-T03's [Colab pilot notebook](notebooks/00_pilot.ipynb) is prepared with real HF model
-adapters, OCR, LoRA save/reload and authenticated gateway checks. It has not been run
-on a GPU yet. Follow [the Colab handoff instructions](docs/T03_COLAB.md), using the
-notebook directly. No storage mount is needed; upload only `artifacts/pilot_inputs.zip`
-when prompted, then download results and the saved adapter from the final cells. No catalogue web app or
-final trained model exists yet. See [the task backlog](docs/TASKS.md).
+T03 has run on Colab, but its annotation gate failed: 1/12 accepted titles and zero
+complete records. Use [recover_annotations.ipynb](notebooks/recover_annotations.ipynb)
+from the first cell to reuse verified successes and repair failed work. Follow
+[the recovery instructions](docs/ANNOTATION_RECOVERY.md). GPU recovery, training/reload
+and serving gates remain pending; local tests do not establish model quality.
 
 Measured T01 results: all 128 images prepared without decode failures; 425.61 MiB of
 originals became 17.92 MiB of copies. Provisional split: 90 train / 18 validation /

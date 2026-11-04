@@ -107,13 +107,15 @@ class VisionSession:
     def generate(self, raw: bytes, prompt: str, max_new_tokens: int | None = None) -> str:
         import torch
 
-        self.load()
-        batch = make_batch(self.processor, raw, prompt).to(
-            device=self.model.device,
-            dtype=self.compute_dtype,
-        )
         started = time.monotonic()
         try:
+            self.load()
+            batch = make_batch(self.processor, raw, prompt)
+            if batch["input_ids"].shape[1] > int(
+                self.spec.parameters.get("max_prompt_tokens", 8192)
+            ):
+                raise ModelCallError("input_token_budget", retryable=False)
+            batch = batch.to(device=self.model.device, dtype=self.compute_dtype)
             with torch.inference_mode():
                 output = self.model.generate(
                     **batch,
@@ -195,6 +197,9 @@ def teacher_prompt(_request_prompt: str) -> str:
         "Authors value is an array of names; year is an integer 1800..2100; "
         "all other present values are strings. Title <=200 characters, other_text <=300. "
         "Identify readable titles and authors even when other details are missing. "
+        "Publisher means the publishing company/imprint, not bestseller text or a review. "
+        "Authors are named writers/editors, not a book series. "
+        "Year means publication year, not a historical year appearing inside a title. "
         "Complete format example (invented content; do not copy its values or statuses): "
         + json.dumps(example)
         + "\n"

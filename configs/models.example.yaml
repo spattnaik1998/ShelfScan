@@ -2,17 +2,17 @@ teacher_a:
   model_id: Qwen/Qwen2.5-VL-7B-Instruct
   revision: main
   family: qwen2_5_vl
-  parameters: {quantize: true, max_new_tokens: 1200, max_seconds: 120, repetition_penalty: 1.1}
+  parameters: {quantize: true, max_new_tokens: 1200, max_seconds: 120, repetition_penalty: 1.1, structured_recovery: true, max_prompt_tokens: 4096}
 teacher_b:
   model_id: HuggingFaceM4/Idefics3-8B-Llama3
   revision: main
   family: idefics3
-  parameters: {quantize: true, max_new_tokens: 1400, max_seconds: 120, repetition_penalty: 1.05, image_longest_edge: 728}
+  parameters: {quantize: true, max_new_tokens: 1400, max_seconds: 120, repetition_penalty: 1.05, image_longest_edge: 728, structured_recovery: true, max_prompt_tokens: 4096}
 adjudicator:
   model_id: Qwen/Qwen2.5-VL-7B-Instruct
   revision: main
   family: qwen2_5_vl
-  parameters: {quantize: true, max_new_tokens: 1200, max_seconds: 120, repetition_penalty: 1.1}
+  parameters: {quantize: true, max_new_tokens: 1200, max_seconds: 45, repetition_penalty: 1.1, structured_recovery: true, max_prompt_tokens: 3072}
 student:
   model_id: Qwen/Qwen2.5-VL-3B-Instruct
   revision: main

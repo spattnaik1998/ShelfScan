@@ -1,4 +1,4 @@
-run_id: pilot-v8
+run_id: pilot-v9
 seed: 42
 max_total_attempts: 100
 max_seconds: 7200.0
@@ -10,3 +10,4 @@ max_training_tokens: 4096
 ocr_languages: [en]
 ocr_rotations: [0, 90, 180, 270]
 # Pilot saves a downloadable LoRA adapter in local Colab runtime storage.
+engine_version: colab-recovery-v2

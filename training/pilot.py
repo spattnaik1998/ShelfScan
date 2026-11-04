@@ -17,6 +17,7 @@ from training.install import redact
 from training.model_io import HubAdjudicator, HubTeacher, VisionSession
 from training.ocr import EasyOCRWorker
 from training.runtime import export_reports, load_json_object
+from training.structured import CompactAdjudicator, StructuredTeacher
 
 
 class CacheOnly:
@@ -48,7 +49,7 @@ class PilotSession:
         self.root, self.output, self.settings, self.specs = root, output, settings, specs
         self.config = AnnotationConfig(
             backend="colab",
-            engine_version="colab-pilot-v1",
+            engine_version=settings.get("engine_version", "colab-pilot-v1"),
             input_path="artifacts/pilot_inputs.zip",
             image_root="data",
             roles={role: specs[role] for role in ("teacher_a", "teacher_b", "adjudicator")}
@@ -149,22 +150,45 @@ class PilotSession:
         self.require("ocr")
         session = VisionSession(self.specs[role])
         worker = (
-            FieldwiseTeacher(session, self.output)
+            StructuredTeacher(session, self.output, role)
+            if self.specs[role].parameters.get("structured_recovery", False)
+            else FieldwiseTeacher(session, self.output)
             if role == "teacher_b" and self.specs[role].parameters.get("fieldwise", False)
             else HubTeacher(session, self.output / f"{role}_diagnostics.json")
         )
+        extract = worker.extract
+        if role == "teacher_b" and self.specs[role].parameters.get("structured_recovery", False):
+            from training.title_recovery import TitleCorrector
+
+            base_extract = extract
+
+            def extract(request):
+                candidate = base_extract(request)
+                cached = self.engine()
+                ocr = cached.call("ocr", request.image, request.image, OCRResult, CacheOnly().read)
+                corrector = TitleCorrector(self)
+                corrector.session = session
+                return corrector.repair(request.image, candidate, ocr)
+
         engine = self.engine(**{role: worker})
         valid = 0
+        field_counts = {
+            name: {}
+            for name in ("title", "authors", "publisher", "edition", "year", "price", "other_text")
+        }
         try:
             for image, _ in self.inputs[:limit]:
                 try:
-                    engine.call(
+                    candidate = engine.call(
                         role,
                         image,
                         TeacherRequest(image=image, prompt=ANNOTATE_PROMPT),
                         Candidate,
-                        worker.extract,
+                        extract,
                     )
+                    for field, claim in candidate.fields.items():
+                        counts = field_counts[field]
+                        counts[claim.status] = counts.get(claim.status, 0) + 1
                     valid += 1
                 except RoleFailed as exc:
                     if valid == 0:
@@ -180,11 +204,14 @@ class PilotSession:
                 {
                     "valid": valid,
                     "total": len(self.inputs[:limit]),
+                    "field_claim_statuses": field_counts,
                     "metrics": session.metrics() if hasattr(session, "metrics") else None,
                 },
             )
-        if limit is not None and valid != len(self.inputs[:limit]):
-            raise RuntimeError("Benchmark requires valid responses for every selected image")
+        if valid != len(self.inputs[:limit]):
+            raise RuntimeError(
+                f"{role}: {valid}/{len(self.inputs[:limit])} valid responses; incomplete coverage"
+            )
         if valid == 0:
             raise RuntimeError("Teacher produced no valid annotation responses")
 
@@ -236,7 +263,12 @@ class PilotSession:
     def annotate(self):
         self.require("ocr", "teacher_a", "teacher_b")
         session = VisionSession(self.specs["adjudicator"])
-        engine = self.engine(adjudicator=HubAdjudicator(session))
+        worker = (
+            CompactAdjudicator(session, self.output, "adjudicator")
+            if self.specs["adjudicator"].parameters.get("structured_recovery", False)
+            else HubAdjudicator(session)
+        )
+        engine = self.engine(adjudicator=worker)
         decisions = []
         try:
             for image, metadata in self.inputs:
@@ -251,6 +283,23 @@ class PilotSession:
                 },
             )
         self.resume()
+        titles = sum(d["fields"]["title"]["status"] == "accepted" for d in decisions)
+        complete = sum(d["record"] is not None for d in decisions)
+        minimum = self.settings["minimum_accepted_titles"]
+        coverage = {
+            "processed": len(decisions),
+            "accepted_titles": titles,
+            "minimum_titles": minimum,
+            "complete_records": complete,
+            "minimum_complete_records": 1,
+            "passed": titles >= minimum and complete >= 1,
+        }
+        atomic_json(self.output / "annotation_coverage.json", coverage)
+        if not coverage["passed"]:
+            raise RuntimeError(
+                f"Annotation quality gate failed: {titles} accepted titles, "
+                f"{complete} complete records; return reports before training"
+            )
 
     def resume(self):
         # Recompute solely from validated cached responses; no GPU/worker calls allowed.
@@ -314,12 +363,19 @@ class PilotSession:
             raise RuntimeError("Authenticated gateway smoke did not pass")
 
     def finish(self) -> Path:
+        from training.structured import structured_summary
+
+        structured_summary(self.output)
         path = self.output / "pilot_decisions.json"
         decisions = json.loads(path.read_bytes()) if path.exists() else []
         titles = sum(d["fields"]["title"]["status"] == "accepted" for d in decisions)
         gate = pilot_gate(
             self.progress, titles, self.settings["minimum_accepted_titles"], len(self.inputs)
         )
+        gate["checks"]["complete_training_records"] = any(
+            d["record"] is not None for d in decisions
+        )
+        gate["passed"] = all(gate["checks"].values())
         report = {
             **gate,
             "accepted_titles": titles,

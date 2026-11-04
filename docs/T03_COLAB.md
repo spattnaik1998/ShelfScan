@@ -226,3 +226,13 @@ or lower the gate. No restart or full input upload is required for the paused ru
 Fresh runs use rebuilt 00_pilot.ipynb with pilot-v8 and install this policy after OCR.
 If annotation, baseline, smoke or gateway already passed in this run, the patch refuses
 to modify those completed downstream results; use the fresh-session notebook instead.
+
+
+## Current entry point: consolidated recovery
+
+Use [recover_annotations.ipynb](../notebooks/recover_annotations.ipynb) from the FIRST
+cell. Follow [ANNOTATION_RECOVERY.md](ANNOTATION_RECOVERY.md). It starts a separate
+pilot-recovery-v2 run, reuses verified successful results, retries failed fields with
+versioned budgets, and compacts adjudicator input. Earlier copy/paste patch cells
+are superseded for this recovery. Upload the existing pilot_inputs.zip and full
+pilot-v6_results.zip only if prompted. Do not run training after a failed coverage gate.

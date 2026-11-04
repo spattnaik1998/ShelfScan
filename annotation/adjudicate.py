@@ -3,6 +3,7 @@
 import random
 
 from annotation.contracts import Adjudication, Candidate, FieldDecision, OCRResult
+from annotation.title_evidence import title_support
 from annotation.verify import evidence_support, unresolved
 
 
@@ -45,7 +46,11 @@ def apply_resolutions(
                 reasons=[claim.reason],
             )
         elif claim.status == "present":
-            quoted, supported = evidence_support(claim, ocr, min_confidence)
+            if name == "title":
+                check = title_support(claim, ocr, min_confidence)
+                quoted, supported = check["quoted"], check["supported"]
+            else:
+                quoted, supported = evidence_support(claim, ocr, min_confidence)
             # A valid source-image box is required for lower-evidence visual-only decisions.
             boxed = bool(claim.evidence) and all(e.box is not None for e in claim.evidence)
             if quoted and (supported or boxed):
